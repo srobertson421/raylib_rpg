@@ -1,0 +1,32 @@
+#ifndef GAME_H
+#define GAME_H
+
+#include "raylib.h"
+
+typedef struct GameState {
+    int pos_x;
+    int pos_y;
+    int speed;
+    Color color;
+    bool initialized;
+} GameState;
+
+typedef void (*GameInitFunc)(GameState *state);
+typedef void (*GameUpdateFunc)(GameState *state);
+typedef void (*GameDrawFunc)(GameState *state);
+
+typedef struct GameAPI {
+    GameInitFunc init;
+    GameUpdateFunc update;
+    GameDrawFunc draw;
+} GameAPI;
+
+#ifdef BUILD_GAME_DLL
+  #define GAME_EXPORT __declspec(dllexport)
+#else
+  #define GAME_EXPORT __declspec(dllimport)
+#endif
+
+GAME_EXPORT GameAPI get_game_api(void);
+
+#endif

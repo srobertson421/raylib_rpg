@@ -1,0 +1,6 @@
+build/
+raylib/
+*.dll
+*.exe
+*.o
+*.a
