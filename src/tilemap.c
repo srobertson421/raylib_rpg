@@ -440,9 +440,10 @@ void tilemap_draw_layer(TileMap *map, int layer_index, Camera2D camera) {
                 (float)ts->tileheight
             };
 
-            // Handle flip flags
-            if (raw_gid & FLIPPED_H_FLAG) src.width = -src.width;
-            if (raw_gid & FLIPPED_V_FLAG) src.height = -src.height;
+            // Handle flip/rotation flags
+            bool flipH = (raw_gid & FLIPPED_H_FLAG) != 0;
+            bool flipV = (raw_gid & FLIPPED_V_FLAG) != 0;
+            bool flipD = (raw_gid & FLIPPED_D_FLAG) != 0;
 
             Rectangle dst = {
                 (float)(x * map->tilewidth),
@@ -451,7 +452,29 @@ void tilemap_draw_layer(TileMap *map, int layer_index, Camera2D camera) {
                 (float)map->tileheight
             };
 
-            DrawTexturePro(ts->texture, src, dst, (Vector2){0, 0}, 0, tint);
+            float rotation = 0;
+            if (flipD) {
+                if (flipH && flipV) {
+                    rotation = 90.0f;
+                    dst.x += map->tilewidth;
+                    src.width = -src.width;
+                } else if (flipH) {
+                    rotation = 90.0f;
+                    dst.x += map->tilewidth;
+                } else if (flipV) {
+                    rotation = 270.0f;
+                    dst.y += map->tileheight;
+                } else {
+                    rotation = 270.0f;
+                    dst.y += map->tileheight;
+                    src.width = -src.width;
+                }
+            } else {
+                if (flipH) src.width = -src.width;
+                if (flipV) src.height = -src.height;
+            }
+
+            DrawTexturePro(ts->texture, src, dst, (Vector2){0, 0}, rotation, tint);
         }
     }
 }
