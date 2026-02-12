@@ -207,6 +207,12 @@
          "id":1,
          "name":"grass",
          "opacity":1,
+         "properties":[
+                {
+                 "name":"render_layer",
+                 "type":"string",
+                 "value":"ground"
+                }],
          "type":"tilelayer",
          "visible":true,
          "width":200,
@@ -418,6 +424,12 @@
          "id":6,
          "name":"water",
          "opacity":1,
+         "properties":[
+                {
+                 "name":"render_layer",
+                 "type":"string",
+                 "value":"below_player"
+                }],
          "type":"tilelayer",
          "visible":true,
          "width":200,
@@ -629,6 +641,12 @@
          "id":5,
          "name":"paths",
          "opacity":1,
+         "properties":[
+                {
+                 "name":"render_layer",
+                 "type":"string",
+                 "value":"below_player"
+                }],
          "type":"tilelayer",
          "visible":true,
          "width":200,
@@ -840,6 +858,12 @@
          "id":2,
          "name":"lower_objects",
          "opacity":1,
+         "properties":[
+                {
+                 "name":"render_layer",
+                 "type":"string",
+                 "value":"below_player"
+                }],
          "type":"tilelayer",
          "visible":true,
          "width":200,
@@ -1183,6 +1207,12 @@
          "id":3,
          "name":"upper_objects",
          "opacity":1,
+         "properties":[
+                {
+                 "name":"render_layer",
+                 "type":"string",
+                 "value":"above_player"
+                }],
          "type":"tilelayer",
          "visible":true,
          "width":200,

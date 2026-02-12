@@ -3,6 +3,14 @@
 
 #include "raylib.h"
 
+typedef enum RenderLayer {
+    RENDER_LAYER_GROUND,
+    RENDER_LAYER_BELOW_PLAYER,
+    RENDER_LAYER_PLAYER,
+    RENDER_LAYER_ABOVE_PLAYER,
+    RENDER_LAYER_COUNT
+} RenderLayer;
+
 typedef struct TileMap TileMap;
 typedef struct CollisionWorld CollisionWorld;
 typedef struct AnimatedSprite AnimatedSprite;

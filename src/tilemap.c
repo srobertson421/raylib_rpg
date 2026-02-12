@@ -137,6 +137,23 @@ static void parse_tile_layer(cJSON *layer_json, TileLayer *layer) {
     item = cJSON_GetObjectItem(layer_json, "opacity");
     layer->opacity = item ? (float)item->valuedouble : 1.0f;
 
+    // Parse render_layer from Tiled custom properties
+    layer->render_layer[0] = '\0';
+    cJSON *props = cJSON_GetObjectItem(layer_json, "properties");
+    if (props && cJSON_IsArray(props)) {
+        cJSON *prop;
+        cJSON_ArrayForEach(prop, props) {
+            cJSON *pname = cJSON_GetObjectItem(prop, "name");
+            if (pname && pname->valuestring && strcmp(pname->valuestring, "render_layer") == 0) {
+                cJSON *pval = cJSON_GetObjectItem(prop, "value");
+                if (pval && pval->valuestring) {
+                    strncpy_safe(layer->render_layer, pval->valuestring, sizeof(layer->render_layer));
+                }
+                break;
+            }
+        }
+    }
+
     cJSON *data = cJSON_GetObjectItem(layer_json, "data");
     if (data && cJSON_IsArray(data)) {
         int count = cJSON_GetArraySize(data);

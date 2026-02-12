@@ -6,7 +6,23 @@
 #include "collision.h"
 #include "sprite.h"
 #include <stddef.h>
+#include <string.h>
 #include <math.h>
+
+static const char *RENDER_LAYER_NAMES[RENDER_LAYER_COUNT] = {
+    [RENDER_LAYER_GROUND]       = "ground",
+    [RENDER_LAYER_BELOW_PLAYER] = "below_player",
+    [RENDER_LAYER_PLAYER]       = "player",
+    [RENDER_LAYER_ABOVE_PLAYER] = "above_player",
+};
+
+static RenderLayer render_layer_from_name(const char *name) {
+    if (!name || !name[0]) return RENDER_LAYER_GROUND;
+    for (int i = 0; i < RENDER_LAYER_COUNT; i++) {
+        if (strcmp(name, RENDER_LAYER_NAMES[i]) == 0) return (RenderLayer)i;
+    }
+    return RENDER_LAYER_GROUND;
+}
 
 static void game_init(GameState *state) {
     // Clean up existing tilemap on reinit (F6)
@@ -64,6 +80,7 @@ static void game_init(GameState *state) {
     sprite_add_animation(state->player_sprite, "walk_right", 4, 4, 0, 8.0f, true);
     sprite_add_animation(state->player_sprite, "walk_up",    8, 4, 0, 8.0f, true);
     sprite_add_animation(state->player_sprite, "walk_left", 12, 4, 0, 8.0f, true);
+    state->player_sprite->render_layer = RENDER_LAYER_PLAYER;
     state->facing = 0;
     sprite_play(state->player_sprite, 0);
     sprite_stop(state->player_sprite);
@@ -134,21 +151,21 @@ static void game_draw(GameState *state) {
 
     BeginMode2D(state->camera);
 
-    if (state->tilemap && state->tilemap->loaded) {
-        // Draw layers below player: grass, water, paths, lower_objects
-        for (int i = 0; i < state->tilemap->tile_layer_count && i < 4; i++) {
-            tilemap_draw_layer(state->tilemap, i, state->camera);
+    for (int rl = 0; rl < RENDER_LAYER_COUNT; rl++) {
+        // Draw tile layers matching this render layer
+        if (state->tilemap && state->tilemap->loaded) {
+            for (int i = 0; i < state->tilemap->tile_layer_count; i++) {
+                RenderLayer layer_rl = render_layer_from_name(state->tilemap->tile_layers[i].render_layer);
+                if ((int)layer_rl == rl) {
+                    tilemap_draw_layer(state->tilemap, i, state->camera);
+                }
+            }
         }
 
-        // Draw player (sprite is 16x32, offset up so feet align with 16x16 collision rect)
-        sprite_draw(state->player_sprite, state->pos_x, state->pos_y - 16, WHITE);
-
-        // Draw layers above player: upper_objects
-        for (int i = 4; i < state->tilemap->tile_layer_count; i++) {
-            tilemap_draw_layer(state->tilemap, i, state->camera);
+        // Draw sprites matching this render layer
+        if (state->player_sprite && state->player_sprite->render_layer == rl) {
+            sprite_draw(state->player_sprite, state->pos_x, state->pos_y - 16, WHITE);
         }
-    } else {
-        sprite_draw(state->player_sprite, state->pos_x, state->pos_y - 16, WHITE);
     }
 
     // Debug collision wireframes

@@ -30,6 +30,7 @@ typedef struct TileLayer {
     uint32_t *data;
     bool visible;
     float opacity;
+    char render_layer[32];
 } TileLayer;
 
 typedef struct MapObject {

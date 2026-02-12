@@ -28,6 +28,7 @@ typedef struct AnimatedSprite {
     int current_frame;
     float frame_timer;
     bool playing;
+    int render_layer;
 } AnimatedSprite;
 
 AnimatedSprite *sprite_create(const char *texture_path, int frame_w, int frame_h);
