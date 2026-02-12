@@ -1,0 +1,75 @@
+#ifndef TILEMAP_H
+#define TILEMAP_H
+
+#include "raylib.h"
+#include <stdint.h>
+#include <stdbool.h>
+
+#define FLIPPED_H_FLAG  0x80000000u
+#define FLIPPED_V_FLAG  0x40000000u
+#define FLIPPED_D_FLAG  0x20000000u
+#define GID_MASK        0x0FFFFFFFu
+
+typedef struct TilesetInfo {
+    int firstgid;
+    int tilewidth;
+    int tileheight;
+    int columns;
+    int tilecount;
+    int margin;
+    int spacing;
+    int imagewidth;
+    int imageheight;
+    Texture2D texture;
+} TilesetInfo;
+
+typedef struct TileLayer {
+    char name[64];
+    int width;
+    int height;
+    uint32_t *data;
+    bool visible;
+    float opacity;
+} TileLayer;
+
+typedef struct MapObject {
+    int id;
+    char name[64];
+    char type[64];
+    double x, y;
+    double width, height;
+    double rotation;
+    bool visible;
+} MapObject;
+
+typedef struct ObjectLayer {
+    char name[64];
+    MapObject *objects;
+    int object_count;
+    bool visible;
+} ObjectLayer;
+
+typedef struct TileMap {
+    int width;
+    int height;
+    int tilewidth;
+    int tileheight;
+
+    TilesetInfo *tilesets;
+    int tileset_count;
+
+    TileLayer *tile_layers;
+    int tile_layer_count;
+
+    ObjectLayer *object_layers;
+    int object_layer_count;
+
+    bool loaded;
+} TileMap;
+
+TileMap *tilemap_load(const char *path);
+void tilemap_unload(TileMap *map);
+void tilemap_draw_layer(TileMap *map, int layer_index, Camera2D camera);
+void tilemap_draw_all(TileMap *map, Camera2D camera);
+
+#endif

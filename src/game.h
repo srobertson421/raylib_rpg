@@ -3,11 +3,15 @@
 
 #include "raylib.h"
 
+typedef struct TileMap TileMap;
+
 typedef struct GameState {
-    int pos_x;
-    int pos_y;
-    int speed;
+    float pos_x;
+    float pos_y;
+    float speed;
     Color color;
+    Camera2D camera;
+    TileMap *tilemap;
     bool initialized;
 } GameState;
 
