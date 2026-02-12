@@ -85,7 +85,7 @@ int main(void) {
     InitWindow(800, 600, "raylib hot-reload demo");
     SetTargetFPS(60);
 
-    GameState state = {0};
+    Game state = {0};
 
     HotReloadState hrs = {0};
     if (!load_game_dll(&hrs)) {
