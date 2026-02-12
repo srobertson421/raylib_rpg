@@ -17,7 +17,7 @@ RAYLIB_IMPORT_LIB="build/libraylibdll.a"
 
 echo "=== Building game.dll ==="
 gcc -shared -o build/game.dll \
-    src/game.c src/tilemap.c src/cJSON.c \
+    src/game.c src/tilemap.c src/cJSON.c src/collision.c \
     -I"$RAYLIB_INCLUDE" \
     -Isrc \
     -DBUILD_GAME_DLL \

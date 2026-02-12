@@ -3,13 +3,21 @@
 #endif
 #include "game.h"
 #include "tilemap.h"
+#include "collision.h"
 #include <stddef.h>
+#include <math.h>
 
 static void game_init(GameState *state) {
     // Clean up existing tilemap on reinit (F6)
     if (state->tilemap) {
         tilemap_unload(state->tilemap);
         state->tilemap = NULL;
+    }
+
+    // Clean up existing collision world on reinit (F6)
+    if (state->collision_world) {
+        collision_destroy(state->collision_world);
+        state->collision_world = NULL;
     }
 
     state->tilemap = tilemap_load("../assets/overworld.tmj");
@@ -26,6 +34,17 @@ static void game_init(GameState *state) {
     state->speed = 3.0f;
     state->color = (Color){ 230, 41, 55, 255 };
 
+    // Collision setup
+    state->collision_world = collision_create();
+    if (state->tilemap && state->tilemap->loaded) {
+        collision_load_from_tilemap(state->collision_world, state->tilemap, "objects_collision");
+    }
+    state->player_body = collision_add_body(
+        state->collision_world,
+        (Rectangle){ state->pos_x, state->pos_y, 16, 16 },
+        BODY_KINEMATIC, TAG_PLAYER, NULL
+    );
+
     // Camera setup
     state->camera.target = (Vector2){ state->pos_x, state->pos_y };
     state->camera.offset = (Vector2){ GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f };
@@ -36,11 +55,30 @@ static void game_init(GameState *state) {
 }
 
 static void game_update(GameState *state) {
+    // Toggle debug draw
+    if (IsKeyPressed(KEY_F3)) {
+        state->collision_world->debug_draw = !state->collision_world->debug_draw;
+    }
+
     // Player movement
-    if (IsKeyDown(KEY_RIGHT)) state->pos_x += state->speed;
-    if (IsKeyDown(KEY_LEFT))  state->pos_x -= state->speed;
-    if (IsKeyDown(KEY_DOWN))  state->pos_y += state->speed;
-    if (IsKeyDown(KEY_UP))    state->pos_y -= state->speed;
+    float dx = 0, dy = 0;
+    if (IsKeyDown(KEY_RIGHT)) dx += state->speed;
+    if (IsKeyDown(KEY_LEFT))  dx -= state->speed;
+    if (IsKeyDown(KEY_DOWN))  dy += state->speed;
+    if (IsKeyDown(KEY_UP))    dy -= state->speed;
+
+    // Normalize diagonal movement
+    if (dx != 0 && dy != 0) {
+        float inv_len = state->speed / sqrtf(dx * dx + dy * dy);
+        dx *= inv_len;
+        dy *= inv_len;
+    }
+
+    // Move with collision
+    collision_move_and_slide(state->collision_world, state->player_body, dx, dy);
+    CollisionBody *pbody = &state->collision_world->bodies[state->player_body];
+    state->pos_x = pbody->rect.x;
+    state->pos_y = pbody->rect.y;
 
     // Clamp player to map bounds
     if (state->tilemap && state->tilemap->loaded) {
@@ -50,6 +88,9 @@ static void game_update(GameState *state) {
         if (state->pos_y < 0) state->pos_y = 0;
         if (state->pos_x > map_w - 16) state->pos_x = map_w - 16;
         if (state->pos_y > map_h - 16) state->pos_y = map_h - 16;
+        // Sync clamped position back to body
+        pbody->rect.x = state->pos_x;
+        pbody->rect.y = state->pos_y;
     }
 
     // Camera follows player
@@ -79,10 +120,13 @@ static void game_draw(GameState *state) {
         DrawRectangle((int)state->pos_x, (int)state->pos_y, 16, 16, state->color);
     }
 
+    // Debug collision wireframes
+    collision_debug_draw(state->collision_world);
+
     EndMode2D();
 
     // HUD (screen space, not affected by camera)
-    DrawText("Arrows: move | F5: reload | F6: reload+reinit", 10, 10, 20, WHITE);
+    DrawText("Arrows: move | F3: collisions | F5: reload | F6: reinit", 10, 10, 20, WHITE);
     DrawFPS(10, 40);
 }
 

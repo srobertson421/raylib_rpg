@@ -4,6 +4,7 @@
 #include "raylib.h"
 
 typedef struct TileMap TileMap;
+typedef struct CollisionWorld CollisionWorld;
 
 typedef struct GameState {
     float pos_x;
@@ -12,6 +13,8 @@ typedef struct GameState {
     Color color;
     Camera2D camera;
     TileMap *tilemap;
+    CollisionWorld *collision_world;
+    int player_body;
     bool initialized;
 } GameState;
 
