@@ -84,7 +84,7 @@ static void dungeon1_draw(Game *game) {
     EndMode2D();
 
     // HUD
-    DrawText("DUNGEON 1 | 1/Esc: return to overworld | F5: reload | F6: reinit", 10, 10, 20, WHITE);
+    DrawText("DUNGEON 1 | 1/Esc: return to overworld | F6: reinit", 10, 10, 20, WHITE);
     DrawFPS(10, 40);
 }
 

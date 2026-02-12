@@ -15,19 +15,11 @@ mkdir -p build
 RAYLIB_INCLUDE="raylib/src"
 RAYLIB_IMPORT_LIB="build/libraylibdll.a"
 
-echo "=== Building game.dll ==="
-gcc -shared -o build/game.dll \
-    src/game.c src/scene_menu.c src/scene_overworld.c src/scene_dungeon1.c src/tilemap.c src/cJSON.c src/collision.c src/sprite.c \
-    -I"$RAYLIB_INCLUDE" \
-    -Isrc \
-    -DBUILD_GAME_DLL \
-    "$RAYLIB_IMPORT_LIB" \
-    -lopengl32 -lgdi32 -lwinmm \
-    -Wall -Wextra -O2
-
 echo "=== Building main.exe ==="
 gcc -o build/main.exe \
-    src/main.c \
+    src/main.c src/game.c src/event.c \
+    src/scene_menu.c src/scene_overworld.c src/scene_dungeon1.c \
+    src/tilemap.c src/cJSON.c src/collision.c src/sprite.c \
     -I"$RAYLIB_INCLUDE" \
     -Isrc \
     "$RAYLIB_IMPORT_LIB" \

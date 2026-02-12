@@ -23,6 +23,7 @@ typedef enum SceneID {
 typedef struct TileMap TileMap;
 typedef struct CollisionWorld CollisionWorld;
 typedef struct AnimatedSprite AnimatedSprite;
+typedef struct EventBus EventBus;
 
 typedef struct Game {
     // Global state (persists across scenes)
@@ -33,30 +34,20 @@ typedef struct Game {
     Camera2D camera;
     bool initialized;
 
+    // Event system
+    EventBus *events;
+
     // Scene management
     SceneID current_scene;
     SceneID next_scene;
     void *scene_data[SCENE_COUNT];
 } Game;
 
-typedef void (*GameInitFunc)(Game *game);
-typedef void (*GameUpdateFunc)(Game *game);
-typedef void (*GameDrawFunc)(Game *game);
-
-typedef struct GameAPI {
-    GameInitFunc init;
-    GameUpdateFunc update;
-    GameDrawFunc draw;
-} GameAPI;
-
 RenderLayer render_layer_from_name(const char *name);
 
-#ifdef BUILD_GAME_DLL
-  #define GAME_EXPORT __declspec(dllexport)
-#else
-  #define GAME_EXPORT __declspec(dllimport)
-#endif
-
-GAME_EXPORT GameAPI get_game_api(void);
+void game_init(Game *game);
+void game_update(Game *game);
+void game_draw(Game *game);
+void game_cleanup(Game *game);
 
 #endif

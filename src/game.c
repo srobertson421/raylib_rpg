@@ -1,9 +1,7 @@
-#ifndef BUILD_GAME_DLL
-#define BUILD_GAME_DLL
-#endif
 #include "game.h"
 #include "scene.h"
 #include "sprite.h"
+#include "event.h"
 #include <stddef.h>
 #include <string.h>
 
@@ -47,6 +45,9 @@ static void perform_transition(Game *game) {
         }
     }
 
+    // Discard stale events from old scene
+    event_clear(game->events);
+
     // Init new scene if no data exists yet
     game->current_scene = next;
     SceneFuncs *new_funcs = &scene_table[next];
@@ -58,7 +59,7 @@ static void perform_transition(Game *game) {
     }
 }
 
-static void game_init(Game *game) {
+void game_init(Game *game) {
     build_scene_table();
 
     // Clean up ALL scenes (for F6 reinit)
@@ -75,6 +76,12 @@ static void game_init(Game *game) {
         sprite_destroy(game->player_sprite);
         game->player_sprite = NULL;
     }
+
+    // Create fresh event bus (destroy old one on reinit)
+    if (game->events) {
+        event_bus_destroy(game->events);
+    }
+    game->events = event_bus_create();
 
     // Global player sprite setup
     game->player_sprite = sprite_create("../assets/player.png", 16, 32);
@@ -101,9 +108,7 @@ static void game_init(Game *game) {
     game->initialized = true;
 }
 
-static void game_update(Game *game) {
-    build_scene_table();
-
+void game_update(Game *game) {
     if (game->next_scene != SCENE_NONE) {
         perform_transition(game);
     }
@@ -112,9 +117,11 @@ static void game_update(Game *game) {
         SceneFuncs *funcs = &scene_table[game->current_scene];
         if (funcs->update) funcs->update(game);
     }
+
+    event_flush(game->events);
 }
 
-static void game_draw(Game *game) {
+void game_draw(Game *game) {
     if (game->current_scene >= 0 && game->current_scene < SCENE_COUNT) {
         SceneFuncs *funcs = &scene_table[game->current_scene];
         if (funcs->draw) funcs->draw(game);
@@ -123,11 +130,25 @@ static void game_draw(Game *game) {
     }
 }
 
-GAME_EXPORT GameAPI get_game_api(void) {
-    scene_table_built = false;
-    GameAPI api = {0};
-    api.init = game_init;
-    api.update = game_update;
-    api.draw = game_draw;
-    return api;
+void game_cleanup(Game *game) {
+    // Clean up all scenes
+    for (int i = 0; i < SCENE_COUNT; i++) {
+        if (game->scene_data[i] && scene_table[i].cleanup) {
+            game->current_scene = (SceneID)i;
+            scene_table[i].cleanup(game);
+        }
+        game->scene_data[i] = NULL;
+    }
+
+    // Clean up player sprite
+    if (game->player_sprite) {
+        sprite_destroy(game->player_sprite);
+        game->player_sprite = NULL;
+    }
+
+    // Clean up event bus
+    if (game->events) {
+        event_bus_destroy(game->events);
+        game->events = NULL;
+    }
 }
