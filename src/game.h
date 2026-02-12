@@ -5,6 +5,7 @@
 
 typedef struct TileMap TileMap;
 typedef struct CollisionWorld CollisionWorld;
+typedef struct AnimatedSprite AnimatedSprite;
 
 typedef struct GameState {
     float pos_x;
@@ -15,6 +16,8 @@ typedef struct GameState {
     TileMap *tilemap;
     CollisionWorld *collision_world;
     int player_body;
+    AnimatedSprite *player_sprite;
+    int facing;
     bool initialized;
 } GameState;
 

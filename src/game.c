@@ -4,6 +4,7 @@
 #include "game.h"
 #include "tilemap.h"
 #include "collision.h"
+#include "sprite.h"
 #include <stddef.h>
 #include <math.h>
 
@@ -18,6 +19,12 @@ static void game_init(GameState *state) {
     if (state->collision_world) {
         collision_destroy(state->collision_world);
         state->collision_world = NULL;
+    }
+
+    // Clean up existing sprite on reinit (F6)
+    if (state->player_sprite) {
+        sprite_destroy(state->player_sprite);
+        state->player_sprite = NULL;
     }
 
     state->tilemap = tilemap_load("../assets/overworld.tmj");
@@ -51,6 +58,16 @@ static void game_init(GameState *state) {
     state->camera.rotation = 0.0f;
     state->camera.zoom = 2.0f;
 
+    // Player sprite setup
+    state->player_sprite = sprite_create("../assets/player.png", 16, 32);
+    sprite_add_animation(state->player_sprite, "walk_down",  0, 4, 0, 8.0f, true);
+    sprite_add_animation(state->player_sprite, "walk_right", 4, 4, 0, 8.0f, true);
+    sprite_add_animation(state->player_sprite, "walk_up",    8, 4, 0, 8.0f, true);
+    sprite_add_animation(state->player_sprite, "walk_left", 12, 4, 0, 8.0f, true);
+    state->facing = 0;
+    sprite_play(state->player_sprite, 0);
+    sprite_stop(state->player_sprite);
+
     state->initialized = true;
 }
 
@@ -73,6 +90,20 @@ static void game_update(GameState *state) {
         dx *= inv_len;
         dy *= inv_len;
     }
+
+    // Animation direction
+    bool moving = (dx != 0 || dy != 0);
+    if (moving) {
+        if (fabsf(dx) >= fabsf(dy)) {
+            state->facing = (dx > 0) ? 1 : 3;
+        } else {
+            state->facing = (dy > 0) ? 0 : 2;
+        }
+        sprite_play(state->player_sprite, state->facing);
+    } else {
+        sprite_stop(state->player_sprite);
+    }
+    sprite_update(state->player_sprite, GetFrameTime());
 
     // Move with collision
     collision_move_and_slide(state->collision_world, state->player_body, dx, dy);
@@ -109,15 +140,15 @@ static void game_draw(GameState *state) {
             tilemap_draw_layer(state->tilemap, i, state->camera);
         }
 
-        // Draw player
-        DrawRectangle((int)state->pos_x, (int)state->pos_y, 16, 16, state->color);
+        // Draw player (sprite is 16x32, offset up so feet align with 16x16 collision rect)
+        sprite_draw(state->player_sprite, state->pos_x, state->pos_y - 16, WHITE);
 
         // Draw layers above player: upper_objects
         for (int i = 4; i < state->tilemap->tile_layer_count; i++) {
             tilemap_draw_layer(state->tilemap, i, state->camera);
         }
     } else {
-        DrawRectangle((int)state->pos_x, (int)state->pos_y, 16, 16, state->color);
+        sprite_draw(state->player_sprite, state->pos_x, state->pos_y - 16, WHITE);
     }
 
     // Debug collision wireframes
