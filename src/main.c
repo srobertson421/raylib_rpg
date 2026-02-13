@@ -4,6 +4,7 @@
 
 int main(void) {
     InitWindow(800, 600, "raylib game");
+    InitAudioDevice();
     SetTargetFPS(60);
 
     Game state = {0};
@@ -23,6 +24,7 @@ int main(void) {
     }
 
     game_cleanup(&state);
+    CloseAudioDevice();
     CloseWindow();
     return 0;
 }

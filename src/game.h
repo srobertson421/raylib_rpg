@@ -23,10 +23,22 @@ typedef enum SceneID {
     SCENE_COUNT
 } SceneID;
 
+typedef enum BattlePhase {
+    PHASE_INTRO,
+    PHASE_PLAYER_MENU,
+    PHASE_PLAYER_ATTACK_ANIM,
+    PHASE_RESOLVE_PLAYER_ATTACK,
+    PHASE_ENEMY_ATTACK_ANIM,
+    PHASE_RESOLVE_ENEMY_ATTACK,
+    PHASE_WIN,
+    PHASE_LOSE,
+} BattlePhase;
+
 typedef struct TileMap TileMap;
 typedef struct CollisionWorld CollisionWorld;
 typedef struct AnimatedSprite AnimatedSprite;
 typedef struct EventBus EventBus;
+typedef struct AudioManager AudioManager;
 
 typedef struct Game {
     // Global state (persists across scenes)
@@ -39,6 +51,9 @@ typedef struct Game {
 
     // Event system
     EventBus *events;
+
+    // Audio
+    AudioManager *audio;
 
     // Player stats (persist across scenes)
     int player_hp;

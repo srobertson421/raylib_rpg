@@ -16,11 +16,13 @@ typedef struct Settings {
     int screen_width;
     int screen_height;
     int resolution_index;
+    float music_volume;
 } Settings;
 
 void settings_load(Settings *settings);
 void settings_save(const Settings *settings);
 void settings_apply_resolution(Game *game);
+void settings_apply_volume(Game *game);
 int settings_find_resolution_index(int width, int height);
 
 #endif

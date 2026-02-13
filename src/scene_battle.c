@@ -1,23 +1,13 @@
 #include "game.h"
 #include "scene.h"
 #include "sprite.h"
+#include "event.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
 
 // ---------- enums & constants ----------
-
-typedef enum BattlePhase {
-    PHASE_INTRO,
-    PHASE_PLAYER_MENU,
-    PHASE_PLAYER_ATTACK_ANIM,
-    PHASE_RESOLVE_PLAYER_ATTACK,
-    PHASE_ENEMY_ATTACK_ANIM,
-    PHASE_RESOLVE_ENEMY_ATTACK,
-    PHASE_WIN,
-    PHASE_LOSE,
-} BattlePhase;
 
 typedef enum TimingResult {
     TIMING_NONE,
@@ -187,13 +177,20 @@ static int calc_retaliation_damage(int raw_dmg, TimingResult r) {
 
 // ---------- phase transitions ----------
 
-static void enter_phase(BattleData *bd, BattlePhase phase) {
+static void enter_phase(Game *game, BattleData *bd, BattlePhase phase) {
+    BattlePhase old_phase = bd->phase;
     bd->phase = phase;
     bd->phase_timer = 0;
     bd->anim_t = 0;
     bd->timing_pressed = false;
     bd->timing_result = TIMING_NONE;
     bd->show_hint = false;
+
+    event_emit(game->events, (Event){
+        .type = EVT_BATTLE_PHASE_CHANGE,
+        .entity_id = (int)phase,
+        .target_id = (int)old_phase,
+    });
 }
 
 // ---------- init / cleanup ----------
@@ -226,7 +223,7 @@ static void battle_init(Game *game) {
     bd->enemy.max_hp = ENEMY_BASE_HP;
     bd->enemy.base_attack = ENEMY_BASE_ATTACK;
 
-    enter_phase(bd, PHASE_INTRO);
+    enter_phase(game, bd, PHASE_INTRO);
 }
 
 static void battle_cleanup(Game *game) {
@@ -250,7 +247,7 @@ static void battle_update(Game *game) {
 
     case PHASE_INTRO:
         if (bd->phase_timer >= INTRO_DURATION) {
-            enter_phase(bd, PHASE_PLAYER_MENU);
+            enter_phase(game, bd, PHASE_PLAYER_MENU);
         }
         break;
 
@@ -262,11 +259,11 @@ static void battle_update(Game *game) {
             if (bd->menu_cursor == 0) {
                 // Attack
                 bd->player_chose_defend = false;
-                enter_phase(bd, PHASE_PLAYER_ATTACK_ANIM);
+                enter_phase(game, bd, PHASE_PLAYER_ATTACK_ANIM);
             } else {
                 // Defend — skip to enemy attack with defend opportunity
                 bd->player_chose_defend = true;
-                enter_phase(bd, PHASE_ENEMY_ATTACK_ANIM);
+                enter_phase(game, bd, PHASE_ENEMY_ATTACK_ANIM);
             }
         }
 
@@ -311,18 +308,18 @@ static void battle_update(Game *game) {
             // Slide player back
             bd->player.cur_x = bd->player.rest_x;
 
-            enter_phase(bd, PHASE_RESOLVE_PLAYER_ATTACK);
+            enter_phase(game, bd, PHASE_RESOLVE_PLAYER_ATTACK);
         }
     } break;
 
     case PHASE_RESOLVE_PLAYER_ATTACK:
         if (bd->phase_timer >= RESOLVE_DURATION) {
             if (bd->enemy.hp <= 0) {
-                enter_phase(bd, PHASE_WIN);
+                enter_phase(game, bd, PHASE_WIN);
             } else {
                 // Enemy retaliates — no defend opportunity
                 bd->player_chose_defend = false;
-                enter_phase(bd, PHASE_ENEMY_ATTACK_ANIM);
+                enter_phase(game, bd, PHASE_ENEMY_ATTACK_ANIM);
             }
         }
         break;
@@ -376,16 +373,16 @@ static void battle_update(Game *game) {
             // Slide enemy back
             bd->enemy.cur_x = bd->enemy.rest_x;
 
-            enter_phase(bd, PHASE_RESOLVE_ENEMY_ATTACK);
+            enter_phase(game, bd, PHASE_RESOLVE_ENEMY_ATTACK);
         }
     } break;
 
     case PHASE_RESOLVE_ENEMY_ATTACK:
         if (bd->phase_timer >= RESOLVE_DURATION) {
             if (bd->player.hp <= 0) {
-                enter_phase(bd, PHASE_LOSE);
+                enter_phase(game, bd, PHASE_LOSE);
             } else {
-                enter_phase(bd, PHASE_PLAYER_MENU);
+                enter_phase(game, bd, PHASE_PLAYER_MENU);
             }
         }
         break;

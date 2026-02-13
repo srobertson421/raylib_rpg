@@ -1,5 +1,6 @@
 #include "settings.h"
 #include "game.h"
+#include "audio.h"
 #include "cJSON.h"
 #include "raylib.h"
 #include <stdio.h>
@@ -30,6 +31,7 @@ void settings_load(Settings *settings) {
     settings->screen_width = 800;
     settings->screen_height = 600;
     settings->resolution_index = 0;
+    settings->music_volume = 0.5f;
 
     if (!FileExists(SETTINGS_PATH)) return;
 
@@ -49,6 +51,13 @@ void settings_load(Settings *settings) {
             settings->screen_width, settings->screen_height);
     }
 
+    cJSON *vol = cJSON_GetObjectItem(root, "music_volume");
+    if (cJSON_IsNumber(vol)) {
+        settings->music_volume = (float)vol->valuedouble;
+        if (settings->music_volume < 0.0f) settings->music_volume = 0.0f;
+        if (settings->music_volume > 1.0f) settings->music_volume = 1.0f;
+    }
+
     cJSON_Delete(root);
 }
 
@@ -56,6 +65,7 @@ void settings_save(const Settings *settings) {
     cJSON *root = cJSON_CreateObject();
     cJSON_AddNumberToObject(root, "screen_width", settings->screen_width);
     cJSON_AddNumberToObject(root, "screen_height", settings->screen_height);
+    cJSON_AddNumberToObject(root, "music_volume", settings->music_volume);
 
     char *json_str = cJSON_Print(root);
     cJSON_Delete(root);
@@ -75,4 +85,10 @@ void settings_apply_resolution(Game *game) {
     int h = game->settings.screen_height;
     SetWindowSize(w, h);
     game->camera.offset = (Vector2){ w / 2.0f, h / 2.0f };
+}
+
+void settings_apply_volume(Game *game) {
+    if (game->audio) {
+        audio_set_music_volume(game->audio, game->settings.music_volume);
+    }
 }

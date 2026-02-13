@@ -10,6 +10,8 @@ typedef enum EventType {
     EVT_INTERACT,
     EVT_DIALOG_START,
     EVT_DIALOG_END,
+    EVT_SCENE_ENTER,
+    EVT_BATTLE_PHASE_CHANGE,
     EVT_COUNT
 } EventType;
 

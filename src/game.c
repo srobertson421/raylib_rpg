@@ -2,6 +2,7 @@
 #include "scene.h"
 #include "sprite.h"
 #include "event.h"
+#include "audio.h"
 #include "settings.h"
 #include <stddef.h>
 #include <string.h>
@@ -60,6 +61,12 @@ static void perform_transition(Game *game) {
             new_funcs->init(game);
         }
     }
+
+    // Notify listeners (audio etc.) about the scene change
+    event_emit(game->events, (Event){
+        .type = EVT_SCENE_ENTER,
+        .entity_id = (int)next,
+    });
 }
 
 void game_init(Game *game) {
@@ -86,9 +93,19 @@ void game_init(Game *game) {
     }
     game->events = event_bus_create();
 
-    // Load and apply resolution settings
+    // Create fresh audio manager (destroy old one on reinit)
+    if (game->audio) {
+        audio_destroy(game->audio);
+    }
+    game->audio = audio_create();
+
+    // Subscribe audio to event bus (before any scene transitions)
+    audio_subscribe_events(game->audio, game->events);
+
+    // Load and apply settings
     settings_load(&game->settings);
     settings_apply_resolution(game);
+    settings_apply_volume(game);
 
     // Global player sprite setup
     game->player_sprite = sprite_create("../assets/player.png", 16, 32);
@@ -130,6 +147,7 @@ void game_update(Game *game) {
     }
 
     event_flush(game->events);
+    audio_update(game->audio);
 }
 
 void game_draw(Game *game) {
@@ -155,6 +173,12 @@ void game_cleanup(Game *game) {
     if (game->player_sprite) {
         sprite_destroy(game->player_sprite);
         game->player_sprite = NULL;
+    }
+
+    // Clean up audio (before event bus, while GL context alive)
+    if (game->audio) {
+        audio_destroy(game->audio);
+        game->audio = NULL;
     }
 
     // Clean up event bus

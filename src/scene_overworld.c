@@ -52,6 +52,7 @@ static void overworld_init(Game *game) {
     // Point camera at player
     game->camera.target = (Vector2){ data->pos_x, data->pos_y };
     game->camera.offset = (Vector2){ GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f };
+    // BGM is now triggered by EVT_SCENE_ENTER event
 }
 
 static void overworld_cleanup(Game *game) {
