@@ -2,6 +2,7 @@
 #define GAME_H
 
 #include "raylib.h"
+#include "settings.h"
 #include <stdbool.h>
 
 typedef enum RenderLayer {
@@ -17,6 +18,7 @@ typedef enum SceneID {
     SCENE_MENU,
     SCENE_OVERWORLD,
     SCENE_DUNGEON_1,
+    SCENE_SETTINGS,
     SCENE_COUNT
 } SceneID;
 
@@ -36,6 +38,9 @@ typedef struct Game {
 
     // Event system
     EventBus *events;
+
+    // Settings
+    Settings settings;
 
     // Scene management
     SceneID current_scene;

@@ -2,6 +2,7 @@
 #include "scene.h"
 #include "sprite.h"
 #include "event.h"
+#include "settings.h"
 #include <stddef.h>
 #include <string.h>
 
@@ -28,6 +29,7 @@ static void build_scene_table(void) {
     scene_table[SCENE_MENU]      = scene_menu_funcs();
     scene_table[SCENE_OVERWORLD] = scene_overworld_funcs();
     scene_table[SCENE_DUNGEON_1] = scene_dungeon1_funcs();
+    scene_table[SCENE_SETTINGS]  = scene_settings_funcs();
     scene_table_built = true;
 }
 
@@ -82,6 +84,10 @@ void game_init(Game *game) {
         event_bus_destroy(game->events);
     }
     game->events = event_bus_create();
+
+    // Load and apply resolution settings
+    settings_load(&game->settings);
+    settings_apply_resolution(game);
 
     // Global player sprite setup
     game->player_sprite = sprite_create("../assets/player.png", 16, 32);

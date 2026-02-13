@@ -17,8 +17,8 @@ RAYLIB_LIB="build/libraylib.a"
 
 echo "=== Building main.exe ==="
 gcc -o build/main.exe \
-    src/main.c src/game.c src/event.c \
-    src/scene_menu.c src/scene_overworld.c src/scene_dungeon1.c \
+    src/main.c src/game.c src/event.c src/settings.c \
+    src/scene_menu.c src/scene_overworld.c src/scene_dungeon1.c src/scene_settings.c \
     src/tilemap.c src/cJSON.c src/collision.c src/sprite.c \
     -I"$RAYLIB_INCLUDE" \
     -Isrc \
