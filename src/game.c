@@ -154,6 +154,14 @@ void game_init(Game *game) {
     game->daynight_active = false;
     game->torch_active = false;
 
+    // Water shader
+    if (game->water_shader.id != 0) UnloadShader(game->water_shader);
+    game->water_shader = LoadShader(NULL, "../assets/water.fs");
+    game->water_time_loc       = GetShaderLocation(game->water_shader, "time");
+    game->water_cam_target_loc = GetShaderLocation(game->water_shader, "camera_target");
+    game->water_cam_offset_loc = GetShaderLocation(game->water_shader, "camera_offset");
+    game->water_cam_zoom_loc   = GetShaderLocation(game->water_shader, "camera_zoom");
+
     game->current_scene = SCENE_NONE;
     game->next_scene = SCENE_MENU;
     game->initialized = true;
@@ -276,6 +284,10 @@ void game_cleanup(Game *game) {
     if (game->daynight_shader.id != 0) {
         UnloadShader(game->daynight_shader);
         game->daynight_shader = (Shader){ 0 };
+    }
+    if (game->water_shader.id != 0) {
+        UnloadShader(game->water_shader);
+        game->water_shader = (Shader){ 0 };
     }
 
     // Clean up audio (before event bus, while GL context alive)

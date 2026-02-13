@@ -86,6 +86,13 @@ typedef struct Game {
     int light_radius_loc;             // cached uniform: light_radius (float, screen pixels)
     int screen_size_loc;              // cached uniform: screen_size (vec2)
 
+    // Per-layer shaders
+    Shader water_shader;
+    int water_time_loc;            // uniform: time (float, seconds)
+    int water_cam_target_loc;      // uniform: camera_target (vec2)
+    int water_cam_offset_loc;      // uniform: camera_offset (vec2)
+    int water_cam_zoom_loc;        // uniform: camera_zoom (float)
+
     // Scene management
     SceneID current_scene;
     SceneID next_scene;

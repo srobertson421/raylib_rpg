@@ -429,6 +429,11 @@
                  "name":"render_layer",
                  "type":"string",
                  "value":"below_player"
+                },
+                {
+                 "name":"shader",
+                 "type":"string",
+                 "value":"water"
                 }],
          "type":"tilelayer",
          "visible":true,

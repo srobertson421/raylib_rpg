@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 
 typedef struct OverworldData {
     TileMap *tilemap;
@@ -188,17 +189,38 @@ static void overworld_draw(Game *game) {
                 TileLayer *layer = &data->tilemap->tile_layers[i];
                 RenderLayer layer_rl = render_layer_from_name(layer->render_layer);
 
+                // Determine if this layer draws in the current render pass
+                bool should_draw = false;
+                bool use_elevated_tint = false;
                 if (layer->elevation > data->player_elevation) {
-                    // Higher elevation: force above player, semi-transparent
                     if (rl == RENDER_LAYER_ABOVE_PLAYER) {
-                        tilemap_draw_layer_tinted(data->tilemap, i, game->camera, elevated_tint);
+                        should_draw = true;
+                        use_elevated_tint = true;
                     }
-                } else {
-                    // Same or lower elevation: draw at assigned render layer
-                    if ((int)layer_rl == rl) {
-                        tilemap_draw_layer(data->tilemap, i, game->camera);
-                    }
+                } else if ((int)layer_rl == rl) {
+                    should_draw = true;
                 }
+                if (!should_draw) continue;
+
+                // Activate per-layer shader if tagged
+                bool shader_active = false;
+                if (layer->shader_name[0] && strcmp(layer->shader_name, "water") == 0) {
+                    float t = (float)GetTime();
+                    SetShaderValue(game->water_shader, game->water_time_loc, &t, SHADER_UNIFORM_FLOAT);
+                    SetShaderValue(game->water_shader, game->water_cam_target_loc, &game->camera.target, SHADER_UNIFORM_VEC2);
+                    SetShaderValue(game->water_shader, game->water_cam_offset_loc, &game->camera.offset, SHADER_UNIFORM_VEC2);
+                    SetShaderValue(game->water_shader, game->water_cam_zoom_loc, &game->camera.zoom, SHADER_UNIFORM_FLOAT);
+                    BeginShaderMode(game->water_shader);
+                    shader_active = true;
+                }
+
+                if (use_elevated_tint) {
+                    tilemap_draw_layer_tinted(data->tilemap, i, game->camera, elevated_tint);
+                } else {
+                    tilemap_draw_layer(data->tilemap, i, game->camera);
+                }
+
+                if (shader_active) EndShaderMode();
             }
         }
 

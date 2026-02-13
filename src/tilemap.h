@@ -45,6 +45,7 @@ typedef struct TileLayer {
     float opacity;
     char render_layer[32];
     int elevation;
+    char shader_name[32];   // Tiled custom property "shader" (e.g., "water")
 } TileLayer;
 
 typedef struct MapObject {

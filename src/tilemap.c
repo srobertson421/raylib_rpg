@@ -180,6 +180,7 @@ static void parse_tile_layer(cJSON *layer_json, TileLayer *layer) {
     // Parse custom properties from Tiled
     layer->render_layer[0] = '\0';
     layer->elevation = 0;
+    layer->shader_name[0] = '\0';
     cJSON *props = cJSON_GetObjectItem(layer_json, "properties");
     if (props && cJSON_IsArray(props)) {
         cJSON *prop;
@@ -194,6 +195,11 @@ static void parse_tile_layer(cJSON *layer_json, TileLayer *layer) {
             } else if (strcmp(pname->valuestring, "elevation") == 0) {
                 cJSON *pval = cJSON_GetObjectItem(prop, "value");
                 if (pval) layer->elevation = pval->valueint;
+            } else if (strcmp(pname->valuestring, "shader") == 0) {
+                cJSON *pval = cJSON_GetObjectItem(prop, "value");
+                if (pval && pval->valuestring) {
+                    strncpy_safe(layer->shader_name, pval->valuestring, sizeof(layer->shader_name));
+                }
             }
         }
     }
