@@ -4,6 +4,7 @@
 #include "collision.h"
 #include "sprite.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 
 typedef struct OverworldData {
@@ -11,6 +12,8 @@ typedef struct OverworldData {
     CollisionWorld *collision_world;
     int player_body;
     float pos_x, pos_y;
+    ElevationRampSet ramps;
+    int player_elevation;
 } OverworldData;
 
 static void overworld_init(Game *game) {
@@ -36,11 +39,15 @@ static void overworld_init(Game *game) {
     if (data->tilemap && data->tilemap->loaded) {
         collision_load_from_tilemap(data->collision_world, data->tilemap, "objects_collision");
     }
+    data->player_elevation = 0;
     data->player_body = collision_add_body(
         data->collision_world,
         (Rectangle){ data->pos_x, data->pos_y, 16, 16 },
-        BODY_KINEMATIC, TAG_PLAYER, NULL
+        BODY_KINEMATIC, TAG_PLAYER, 0, NULL
     );
+    if (data->tilemap && data->tilemap->loaded) {
+        collision_load_ramps_from_tilemap(&data->ramps, data->tilemap, "objects_collision");
+    }
 
     // Point camera at player
     game->camera.target = (Vector2){ data->pos_x, data->pos_y };
@@ -128,6 +135,17 @@ static void overworld_update(Game *game) {
         pbody->rect.y = data->pos_y;
     }
 
+    // Check ramp overlaps for elevation transitions
+    for (int i = 0; i < data->ramps.count; i++) {
+        ElevationRamp *ramp = &data->ramps.ramps[i];
+        if (data->player_elevation != ramp->from_elevation) continue;
+        if (CheckCollisionRecs(pbody->rect, ramp->rect)) {
+            data->player_elevation = ramp->to_elevation;
+            pbody->elevation = ramp->to_elevation;
+            break;
+        }
+    }
+
     // Camera follows player
     game->camera.target = (Vector2){ data->pos_x + 8, data->pos_y + 8 };
     game->camera.offset = (Vector2){ GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f };
@@ -140,13 +158,25 @@ static void overworld_draw(Game *game) {
     ClearBackground(BLACK);
     BeginMode2D(game->camera);
 
+    Color elevated_tint = (Color){ 255, 255, 255, 160 };
+
     for (int rl = 0; rl < RENDER_LAYER_COUNT; rl++) {
-        // Draw tile layers matching this render layer
+        // Draw tile layers with elevation-aware layering
         if (data->tilemap && data->tilemap->loaded) {
             for (int i = 0; i < data->tilemap->tile_layer_count; i++) {
-                RenderLayer layer_rl = render_layer_from_name(data->tilemap->tile_layers[i].render_layer);
-                if ((int)layer_rl == rl) {
-                    tilemap_draw_layer(data->tilemap, i, game->camera);
+                TileLayer *layer = &data->tilemap->tile_layers[i];
+                RenderLayer layer_rl = render_layer_from_name(layer->render_layer);
+
+                if (layer->elevation > data->player_elevation) {
+                    // Higher elevation: force above player, semi-transparent
+                    if (rl == RENDER_LAYER_ABOVE_PLAYER) {
+                        tilemap_draw_layer_tinted(data->tilemap, i, game->camera, elevated_tint);
+                    }
+                } else {
+                    // Same or lower elevation: draw at assigned render layer
+                    if ((int)layer_rl == rl) {
+                        tilemap_draw_layer(data->tilemap, i, game->camera);
+                    }
                 }
             }
         }
@@ -165,6 +195,10 @@ static void overworld_draw(Game *game) {
     // HUD
     DrawText("Arrows: move | 1: dungeon | 2: battle | F3: collisions | F6: reinit", 10, 10, 20, WHITE);
     DrawFPS(10, 40);
+
+    char elev_buf[32];
+    snprintf(elev_buf, sizeof(elev_buf), "Elevation: %d", data->player_elevation);
+    DrawText(elev_buf, 10, 60, 20, YELLOW);
 }
 
 SceneFuncs scene_overworld_funcs(void) {

@@ -9,11 +9,14 @@ A 2D top-down adventure game built from scratch in C with [raylib](https://www.r
 ## Features
 
 - **Tiled map support** -- loads Tiled JSON exports (`.tmj`/`.tsj`) with external tilesets, tile flipping/rotation, and viewport culling
-- **Scene management** -- menu, overworld, and dungeon scenes with transitions and optional persistence
-- **Render layers** -- label-based draw ordering (ground, below player, player, above player)
-- **AABB collision** -- axis-aligned bounding box collision with wall-sliding, loaded from Tiled object layers
+- **Scene management** -- menu, overworld, dungeon, battle, and settings scenes with transitions and optional persistence
+- **Turn-based battle system** -- timed attacks and defense with animated lunges, damage multipliers, and timing feedback
+- **Elevation system** -- collision filtering by elevation, ramp/stair transitions, and ALttP-style visual layering (higher terrain renders semi-transparent above the player)
+- **Render layers** -- label-based draw ordering (ground, below player, player, above player) with elevation-aware overrides
+- **AABB collision** -- axis-aligned bounding box collision with wall-sliding and per-body elevation, loaded from Tiled object layers
 - **Animated sprites** -- spritesheet-based animation system with named animations and directional facing
 - **Pub/sub events** -- fixed-size ring buffer event bus for decoupled game systems
+- **Resolution settings** -- configurable resolution with persistent JSON config, accessible from an in-game settings menu
 - **File watcher** -- `watch.sh` auto-rebuilds on source changes
 
 ## Prerequisites
@@ -40,9 +43,10 @@ cd build && ./main.exe
 | Key | Action |
 |-----|--------|
 | Arrow keys | Move player |
-| Enter/Space | Start game (menu) |
-| 1 | Enter dungeon / return to overworld |
-| Escape | Return to overworld (in dungeon) |
+| Enter/Space | Start game (menu) / confirm |
+| 1 | Enter dungeon |
+| 2 | Enter battle |
+| Escape | Return to overworld / back |
 | F3 | Toggle collision debug wireframes |
 | F6 | Reinitialize game state |
 
@@ -55,11 +59,14 @@ raylib_fun/
     game.h / game.c     Game struct, init/update/draw, scene dispatch
     scene.h             Scene interface (SceneFuncs)
     scene_menu.c        Title screen
-    scene_overworld.c   Main overworld with tilemap + collision
+    scene_overworld.c   Main overworld with tilemap + collision + elevation
     scene_dungeon1.c    Dungeon scene (scene transition example)
+    scene_battle.c      Turn-based battle with timed attacks/defense
+    scene_settings.c    Resolution settings menu
+    settings.h / .c     Resolution config (persistent JSON)
     event.h / event.c   Pub/sub event bus
-    tilemap.h / .c      Tiled JSON map loader + renderer
-    collision.h / .c    AABB collision world with move-and-slide
+    tilemap.h / .c      Tiled JSON map loader + renderer (with tinted draw)
+    collision.h / .c    AABB collision world with elevation + ramps
     sprite.h / .c       Animated sprite system
     cJSON.h / .c        Vendored JSON parser (MIT, v1.7.18)
   assets/
@@ -93,6 +100,10 @@ Raylib is built as a static library (`libraylib.a`) and linked directly into the
 **Event bus** -- a fixed-size ring buffer (256 events) with up to 16 listeners per event type. Events emitted during a flush are deferred to the next flush to prevent infinite loops. Used for decoupling game systems (collision enter/exit, zone triggers, dialog, etc.).
 
 **Tilemap rendering** -- only tiles visible within the camera viewport are drawn. Tile layers are assigned render layers via Tiled custom properties, allowing layers to draw above or below the player.
+
+**Elevation system** -- collision bodies and tile layers have an `elevation` field. Collisions are only checked between bodies at the same elevation. Ramp objects (type `elevation_ramp` with `from_elevation`/`to_elevation` properties) transition the player between levels. Tile layers at a higher elevation than the player render semi-transparently above the player (ALttP-style).
+
+**Battle system** -- turn-based combat with timed action mechanics. During attack and defense phases, pressing Space/Enter at the right moment in the animation window yields Good or Excellent timing, which scales damage dealt/blocked.
 
 ## License
 

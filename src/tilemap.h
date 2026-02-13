@@ -31,6 +31,7 @@ typedef struct TileLayer {
     bool visible;
     float opacity;
     char render_layer[32];
+    int elevation;
 } TileLayer;
 
 typedef struct MapObject {
@@ -41,6 +42,9 @@ typedef struct MapObject {
     double width, height;
     double rotation;
     bool visible;
+    int elevation;
+    int from_elevation;
+    int to_elevation;
 } MapObject;
 
 typedef struct ObjectLayer {
@@ -71,6 +75,7 @@ typedef struct TileMap {
 TileMap *tilemap_load(const char *path);
 void tilemap_unload(TileMap *map);
 void tilemap_draw_layer(TileMap *map, int layer_index, Camera2D camera);
+void tilemap_draw_layer_tinted(TileMap *map, int layer_index, Camera2D camera, Color tint);
 void tilemap_draw_all(TileMap *map, Camera2D camera);
 
 #endif

@@ -137,19 +137,23 @@ static void parse_tile_layer(cJSON *layer_json, TileLayer *layer) {
     item = cJSON_GetObjectItem(layer_json, "opacity");
     layer->opacity = item ? (float)item->valuedouble : 1.0f;
 
-    // Parse render_layer from Tiled custom properties
+    // Parse custom properties from Tiled
     layer->render_layer[0] = '\0';
+    layer->elevation = 0;
     cJSON *props = cJSON_GetObjectItem(layer_json, "properties");
     if (props && cJSON_IsArray(props)) {
         cJSON *prop;
         cJSON_ArrayForEach(prop, props) {
             cJSON *pname = cJSON_GetObjectItem(prop, "name");
-            if (pname && pname->valuestring && strcmp(pname->valuestring, "render_layer") == 0) {
+            if (!pname || !pname->valuestring) continue;
+            if (strcmp(pname->valuestring, "render_layer") == 0) {
                 cJSON *pval = cJSON_GetObjectItem(prop, "value");
                 if (pval && pval->valuestring) {
                     strncpy_safe(layer->render_layer, pval->valuestring, sizeof(layer->render_layer));
                 }
-                break;
+            } else if (strcmp(pname->valuestring, "elevation") == 0) {
+                cJSON *pval = cJSON_GetObjectItem(prop, "value");
+                if (pval) layer->elevation = pval->valueint;
             }
         }
     }
@@ -214,6 +218,28 @@ static void parse_object_layer(cJSON *layer_json, ObjectLayer *layer) {
 
                 item = cJSON_GetObjectItem(obj, "visible");
                 mo->visible = item ? cJSON_IsTrue(item) : true;
+
+                // Parse custom properties (elevation, from_elevation, to_elevation)
+                mo->elevation = 0;
+                mo->from_elevation = 0;
+                mo->to_elevation = 0;
+                cJSON *props = cJSON_GetObjectItem(obj, "properties");
+                if (props && cJSON_IsArray(props)) {
+                    cJSON *prop;
+                    cJSON_ArrayForEach(prop, props) {
+                        cJSON *pname = cJSON_GetObjectItem(prop, "name");
+                        if (!pname || !pname->valuestring) continue;
+                        cJSON *pval = cJSON_GetObjectItem(prop, "value");
+                        if (!pval) continue;
+                        if (strcmp(pname->valuestring, "elevation") == 0) {
+                            mo->elevation = pval->valueint;
+                        } else if (strcmp(pname->valuestring, "from_elevation") == 0) {
+                            mo->from_elevation = pval->valueint;
+                        } else if (strcmp(pname->valuestring, "to_elevation") == 0) {
+                            mo->to_elevation = pval->valueint;
+                        }
+                    }
+                }
             }
         }
     }
@@ -402,7 +428,7 @@ void tilemap_unload(TileMap *map) {
     free(map);
 }
 
-void tilemap_draw_layer(TileMap *map, int layer_index, Camera2D camera) {
+void tilemap_draw_layer_tinted(TileMap *map, int layer_index, Camera2D camera, Color tint) {
     if (!map || !map->loaded) return;
     if (layer_index < 0 || layer_index >= map->tile_layer_count) return;
 
@@ -425,10 +451,8 @@ void tilemap_draw_layer(TileMap *map, int layer_index, Camera2D camera) {
     if (end_x > layer->width) end_x = layer->width;
     if (end_y > layer->height) end_y = layer->height;
 
-    Color tint = WHITE;
-    if (layer->opacity < 1.0f) {
-        tint.a = (unsigned char)(layer->opacity * 255.0f);
-    }
+    // Merge caller's tint alpha with layer opacity
+    tint.a = (unsigned char)(tint.a * layer->opacity);
 
     for (int y = start_y; y < end_y; y++) {
         for (int x = start_x; x < end_x; x++) {
@@ -494,6 +518,10 @@ void tilemap_draw_layer(TileMap *map, int layer_index, Camera2D camera) {
             DrawTexturePro(ts->texture, src, dst, (Vector2){0, 0}, rotation, tint);
         }
     }
+}
+
+void tilemap_draw_layer(TileMap *map, int layer_index, Camera2D camera) {
+    tilemap_draw_layer_tinted(map, layer_index, camera, WHITE);
 }
 
 void tilemap_draw_all(TileMap *map, Camera2D camera) {
