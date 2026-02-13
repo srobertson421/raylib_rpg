@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 // Fix unescaped backslashes in JSON text (Tiled Windows path quirk)
 static void fix_json_backslashes(char *text) {
@@ -114,6 +115,45 @@ static bool parse_tileset_json(cJSON *ts_json, TilesetInfo *ts, const char *base
     item = cJSON_GetObjectItem(ts_json, "image");
     if (item && item->valuestring) {
         ts->texture = load_texture_with_fallback(item->valuestring, base_dir);
+    }
+
+    // Parse tile animations
+    if (ts->tilecount > 0) {
+        ts->anim_lookup = (TileAnim *)calloc(ts->tilecount, sizeof(TileAnim));
+        cJSON *tiles_arr = cJSON_GetObjectItem(ts_json, "tiles");
+        if (tiles_arr && cJSON_IsArray(tiles_arr)) {
+            cJSON *tile_entry;
+            cJSON_ArrayForEach(tile_entry, tiles_arr) {
+                cJSON *id_item = cJSON_GetObjectItem(tile_entry, "id");
+                cJSON *anim_arr = cJSON_GetObjectItem(tile_entry, "animation");
+                if (!id_item || !anim_arr || !cJSON_IsArray(anim_arr)) continue;
+
+                int local_id = id_item->valueint;
+                if (local_id < 0 || local_id >= ts->tilecount) continue;
+
+                int frame_count = cJSON_GetArraySize(anim_arr);
+                if (frame_count <= 0) continue;
+
+                TileAnim *anim = &ts->anim_lookup[local_id];
+                anim->frame_count = frame_count;
+                anim->frames = (TileAnimFrame *)malloc(frame_count * sizeof(TileAnimFrame));
+                anim->total_duration = 0;
+
+                int f = 0;
+                cJSON *frame_entry;
+                cJSON_ArrayForEach(frame_entry, anim_arr) {
+                    cJSON *ftid = cJSON_GetObjectItem(frame_entry, "tileid");
+                    cJSON *fdur = cJSON_GetObjectItem(frame_entry, "duration");
+                    anim->frames[f].tileid = ftid ? ftid->valueint : 0;
+                    anim->frames[f].duration = fdur ? fdur->valueint : 100;
+                    anim->total_duration += anim->frames[f].duration;
+                    f++;
+                }
+
+                printf("[tilemap] Animated tile %d: %d frames, %d ms total\n",
+                       local_id, anim->frame_count, anim->total_duration);
+            }
+        }
     }
 
     return ts->columns > 0 && ts->tilecount > 0;
@@ -409,6 +449,12 @@ void tilemap_unload(TileMap *map) {
     if (!map) return;
 
     for (int i = 0; i < map->tileset_count; i++) {
+        if (map->tilesets[i].anim_lookup) {
+            for (int j = 0; j < map->tilesets[i].tilecount; j++) {
+                free(map->tilesets[i].anim_lookup[j].frames);
+            }
+            free(map->tilesets[i].anim_lookup);
+        }
         if (map->tilesets[i].texture.id > 0) {
             UnloadTexture(map->tilesets[i].texture);
         }
@@ -426,6 +472,11 @@ void tilemap_unload(TileMap *map) {
     free(map->object_layers);
 
     free(map);
+}
+
+void tilemap_update(TileMap *map, float dt) {
+    if (!map) return;
+    map->anim_time += (double)(dt * 1000.0f);
 }
 
 void tilemap_draw_layer_tinted(TileMap *map, int layer_index, Camera2D camera, Color tint) {
@@ -471,6 +522,23 @@ void tilemap_draw_layer_tinted(TileMap *map, int layer_index, Camera2D camera, C
             if (!ts || ts->texture.id == 0) continue;
 
             int local_id = (int)gid - ts->firstgid;
+
+            // Resolve animated tile to current frame
+            if (ts->anim_lookup && local_id >= 0 && local_id < ts->tilecount) {
+                TileAnim *anim = &ts->anim_lookup[local_id];
+                if (anim->frame_count > 0) {
+                    int t = (int)fmod(map->anim_time, (double)anim->total_duration);
+                    int acc = 0;
+                    for (int f = 0; f < anim->frame_count; f++) {
+                        acc += anim->frames[f].duration;
+                        if (t < acc) {
+                            local_id = anim->frames[f].tileid;
+                            break;
+                        }
+                    }
+                }
+            }
+
             int col = local_id % ts->columns;
             int row = local_id / ts->columns;
 

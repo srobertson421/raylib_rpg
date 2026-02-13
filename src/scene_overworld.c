@@ -75,6 +75,9 @@ static void overworld_update(Game *game) {
     OverworldData *data = game->scene_data[SCENE_OVERWORLD];
     if (!data) return;
 
+    // Advance tile animations
+    tilemap_update(data->tilemap, GetFrameTime());
+
     // Toggle debug draw
     if (IsKeyPressed(KEY_F3)) {
         data->collision_world->debug_draw = !data->collision_world->debug_draw;

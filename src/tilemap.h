@@ -10,6 +10,17 @@
 #define FLIPPED_D_FLAG  0x20000000u
 #define GID_MASK        0x0FFFFFFFu
 
+typedef struct TileAnimFrame {
+    int tileid;       // local tile ID to display
+    int duration;     // milliseconds
+} TileAnimFrame;
+
+typedef struct TileAnim {
+    TileAnimFrame *frames;
+    int frame_count;
+    int total_duration;  // precomputed sum of all frame durations (ms)
+} TileAnim;
+
 typedef struct TilesetInfo {
     int firstgid;
     int tilewidth;
@@ -21,6 +32,8 @@ typedef struct TilesetInfo {
     int imagewidth;
     int imageheight;
     Texture2D texture;
+    TileAnim *anim_lookup;   // array of size tilecount, indexed by local tile ID
+                              // .frame_count == 0 means not animated
 } TilesetInfo;
 
 typedef struct TileLayer {
@@ -70,10 +83,12 @@ typedef struct TileMap {
     int object_layer_count;
 
     bool loaded;
+    double anim_time;         // global animation clock in milliseconds
 } TileMap;
 
 TileMap *tilemap_load(const char *path);
 void tilemap_unload(TileMap *map);
+void tilemap_update(TileMap *map, float dt);
 void tilemap_draw_layer(TileMap *map, int layer_index, Camera2D camera);
 void tilemap_draw_layer_tinted(TileMap *map, int layer_index, Camera2D camera, Color tint);
 void tilemap_draw_all(TileMap *map, Camera2D camera);
