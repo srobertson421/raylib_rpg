@@ -14,6 +14,7 @@ typedef struct OverworldData {
     float pos_x, pos_y;
     ElevationRampSet ramps;
     int player_elevation;
+    int last_ramp;          // index of ramp that last fired (-1 = none)
 } OverworldData;
 
 static void overworld_init(Game *game) {
@@ -40,6 +41,7 @@ static void overworld_init(Game *game) {
         collision_load_from_tilemap(data->collision_world, data->tilemap, "objects_collision");
     }
     data->player_elevation = 0;
+    data->last_ramp = -1;
     data->player_body = collision_add_body(
         data->collision_world,
         (Rectangle){ data->pos_x, data->pos_y, 16, 16 },
@@ -137,13 +139,23 @@ static void overworld_update(Game *game) {
     }
 
     // Check ramp overlaps for elevation transitions
-    for (int i = 0; i < data->ramps.count; i++) {
-        ElevationRamp *ramp = &data->ramps.ramps[i];
-        if (data->player_elevation != ramp->from_elevation) continue;
-        if (CheckCollisionRecs(pbody->rect, ramp->rect)) {
-            data->player_elevation = ramp->to_elevation;
-            pbody->elevation = ramp->to_elevation;
-            break;
+    // Suppress re-triggering until the player leaves the ramp that last fired
+    if (data->last_ramp >= 0) {
+        ElevationRamp *lr = &data->ramps.ramps[data->last_ramp];
+        if (!CheckCollisionRecs(pbody->rect, lr->rect)) {
+            data->last_ramp = -1;
+        }
+    }
+    if (data->last_ramp < 0) {
+        for (int i = 0; i < data->ramps.count; i++) {
+            ElevationRamp *ramp = &data->ramps.ramps[i];
+            if (data->player_elevation != ramp->from_elevation) continue;
+            if (CheckCollisionRecs(pbody->rect, ramp->rect)) {
+                data->player_elevation = ramp->to_elevation;
+                pbody->elevation = ramp->to_elevation;
+                data->last_ramp = i;
+                break;
+            }
         }
     }
 
