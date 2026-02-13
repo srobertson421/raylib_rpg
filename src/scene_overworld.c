@@ -17,6 +17,9 @@ static void overworld_init(Game *game) {
     OverworldData *data = calloc(1, sizeof(OverworldData));
     game->scene_data[SCENE_OVERWORLD] = data;
 
+    // Reset player HP to full when entering overworld
+    game->player_hp = game->player_max_hp;
+
     data->tilemap = tilemap_load("../assets/overworld.tmj");
 
     // Player start position (center of map)
@@ -70,6 +73,12 @@ static void overworld_update(Game *game) {
     // Scene transition: press 1 to enter dungeon
     if (IsKeyPressed(KEY_ONE)) {
         game->next_scene = SCENE_DUNGEON_1;
+        return;
+    }
+
+    // Scene transition: press 2 to enter battle
+    if (IsKeyPressed(KEY_TWO)) {
+        game->next_scene = SCENE_BATTLE;
         return;
     }
 
@@ -154,7 +163,7 @@ static void overworld_draw(Game *game) {
     EndMode2D();
 
     // HUD
-    DrawText("Arrows: move | 1: dungeon | F3: collisions | F6: reinit", 10, 10, 20, WHITE);
+    DrawText("Arrows: move | 1: dungeon | 2: battle | F3: collisions | F6: reinit", 10, 10, 20, WHITE);
     DrawFPS(10, 40);
 }
 

@@ -21,5 +21,6 @@ SceneFuncs scene_menu_funcs(void);
 SceneFuncs scene_overworld_funcs(void);
 SceneFuncs scene_dungeon1_funcs(void);
 SceneFuncs scene_settings_funcs(void);
+SceneFuncs scene_battle_funcs(void);
 
 #endif

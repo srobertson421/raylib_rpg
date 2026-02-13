@@ -30,6 +30,7 @@ static void build_scene_table(void) {
     scene_table[SCENE_OVERWORLD] = scene_overworld_funcs();
     scene_table[SCENE_DUNGEON_1] = scene_dungeon1_funcs();
     scene_table[SCENE_SETTINGS]  = scene_settings_funcs();
+    scene_table[SCENE_BATTLE]    = scene_battle_funcs();
     scene_table_built = true;
 }
 
@@ -99,6 +100,10 @@ void game_init(Game *game) {
     game->facing = 0;
     sprite_play(game->player_sprite, 0);
     sprite_stop(game->player_sprite);
+
+    game->player_hp = 30;
+    game->player_max_hp = 30;
+    game->player_attack = 5;
 
     game->speed = 3.0f;
     game->color = (Color){ 230, 41, 55, 255 };

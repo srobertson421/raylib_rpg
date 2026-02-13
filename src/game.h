@@ -19,6 +19,7 @@ typedef enum SceneID {
     SCENE_OVERWORLD,
     SCENE_DUNGEON_1,
     SCENE_SETTINGS,
+    SCENE_BATTLE,
     SCENE_COUNT
 } SceneID;
 
@@ -38,6 +39,11 @@ typedef struct Game {
 
     // Event system
     EventBus *events;
+
+    // Player stats (persist across scenes)
+    int player_hp;
+    int player_max_hp;
+    int player_attack;
 
     // Settings
     Settings settings;
