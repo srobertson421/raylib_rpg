@@ -4,6 +4,7 @@
 
 int main(void) {
     InitWindow(800, 600, "raylib game");
+    SetExitKey(0);
     InitAudioDevice();
     SetTargetFPS(60);
 

@@ -31,7 +31,7 @@ static void dungeon1_update(Game *game) {
     if (!data) return;
 
     // Return to overworld
-    if (IsKeyPressed(KEY_ONE) || IsKeyPressed(KEY_ESCAPE)) {
+    if (IsKeyPressed(KEY_ONE)) {
         game->next_scene = SCENE_OVERWORLD;
         return;
     }
@@ -84,7 +84,7 @@ static void dungeon1_draw(Game *game) {
     EndMode2D();
 
     // HUD
-    DrawText("DUNGEON 1 | 1/Esc: return to overworld | F6: reinit", 10, 10, 20, WHITE);
+    DrawText("DUNGEON 1 | 1: return to overworld | F6: reinit", 10, 10, 20, WHITE);
     DrawFPS(10, 40);
 }
 

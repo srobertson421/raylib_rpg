@@ -252,24 +252,28 @@ static void battle_update(Game *game) {
         break;
 
     case PHASE_PLAYER_MENU:
-        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))   bd->menu_cursor = 0;
-        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))  bd->menu_cursor = 1;
+        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
+            bd->menu_cursor--;
+            if (bd->menu_cursor < 0) bd->menu_cursor = 2;
+        }
+        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
+            bd->menu_cursor++;
+            if (bd->menu_cursor > 2) bd->menu_cursor = 0;
+        }
 
         if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER)) {
             if (bd->menu_cursor == 0) {
                 // Attack
                 bd->player_chose_defend = false;
                 enter_phase(game, bd, PHASE_PLAYER_ATTACK_ANIM);
-            } else {
+            } else if (bd->menu_cursor == 1) {
                 // Defend — skip to enemy attack with defend opportunity
                 bd->player_chose_defend = true;
                 enter_phase(game, bd, PHASE_ENEMY_ATTACK_ANIM);
+            } else {
+                // Flee
+                game->next_scene = SCENE_OVERWORLD;
             }
-        }
-
-        // ESC to flee
-        if (IsKeyPressed(KEY_ESCAPE)) {
-            game->next_scene = SCENE_OVERWORLD;
         }
         break;
 
@@ -389,7 +393,7 @@ static void battle_update(Game *game) {
 
     case PHASE_WIN:
     case PHASE_LOSE:
-        if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE)) {
+        if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER)) {
             game->player_hp = bd->player.hp;
             game->next_scene = SCENE_OVERWORLD;
         }
@@ -517,22 +521,22 @@ static void battle_draw(Game *game) {
     case PHASE_PLAYER_MENU: {
         // Menu box at bottom-left
         float box_x = 30;
-        float box_y = sh - 140;
+        float box_y = sh - 160;
         float box_w = 220;
-        float box_h = 110;
+        float box_h = 130;
         DrawRectangle((int)box_x, (int)box_y, (int)box_w, (int)box_h, (Color){ 0, 0, 0, 200 });
         DrawRectangleLines((int)box_x, (int)box_y, (int)box_w, (int)box_h, WHITE);
 
-        const char *options[] = { "Attack", "Defend" };
-        for (int i = 0; i < 2; i++) {
+        const char *options[] = { "Attack", "Defend", "Flee" };
+        for (int i = 0; i < 3; i++) {
             Color c = (i == bd->menu_cursor) ? YELLOW : WHITE;
             const char *prefix = (i == bd->menu_cursor) ? "> " : "  ";
             char line[64];
             snprintf(line, sizeof(line), "%s%s", prefix, options[i]);
-            DrawText(line, (int)(box_x + 15), (int)(box_y + 15 + i * 40), 28, c);
+            DrawText(line, (int)(box_x + 15), (int)(box_y + 12 + i * 36), 24, c);
         }
 
-        DrawText("UP/DOWN: select | SPACE: confirm | ESC: flee",
+        DrawText("UP/DOWN: select | SPACE: confirm",
                  (int)(box_x), (int)(sh - 22), 16, GRAY);
     } break;
 
@@ -577,7 +581,7 @@ static void battle_draw(Game *game) {
     }
 
     // HUD
-    DrawText("BATTLE | ESC: flee (menu only) | F6: reinit", 10, 10, 20, WHITE);
+    DrawText("BATTLE | F6: reinit", 10, 10, 20, WHITE);
     DrawFPS(10, 40);
 }
 

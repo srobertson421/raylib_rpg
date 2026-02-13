@@ -3,6 +3,7 @@
 
 #include "raylib.h"
 #include "settings.h"
+#include "ui.h"
 #include <stdbool.h>
 
 typedef enum RenderLayer {
@@ -62,6 +63,9 @@ typedef struct Game {
 
     // Settings
     Settings settings;
+
+    // UI overlay
+    UIOverlay ui;
 
     // Scene management
     SceneID current_scene;

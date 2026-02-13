@@ -17,6 +17,7 @@ A 2D top-down adventure game built from scratch in C with [raylib](https://www.r
 - **Animated sprites** -- spritesheet-based animation system with named animations and directional facing
 - **Audio system** -- background music with crossfading between scenes, track deduplication, volume control, and sectioned music with loop regions for battle phases
 - **Pub/sub events** -- fixed-size ring buffer event bus for decoupled game systems (scene transitions, battle phases, audio triggers)
+- **Pause menu overlay** -- animated UI overlay (ESC) with resume, settings sub-page (volume + resolution), and quit-to-menu, using ease-out cubic expand/collapse animation
 - **Settings menu** -- configurable resolution and music volume with persistent JSON config, live preview, and in-game settings screen
 - **File watcher** -- `watch.sh` auto-rebuilds on source changes
 
@@ -47,7 +48,7 @@ cd build && ./main.exe
 | Enter/Space | Start game (menu) / confirm |
 | 1 | Enter dungeon |
 | 2 | Enter battle |
-| Escape | Return to overworld / back |
+| Escape | Open pause menu (in-game) / back (menus) |
 | F3 | Toggle collision debug wireframes |
 | F6 | Reinitialize game state |
 
@@ -64,6 +65,7 @@ raylib_fun/
     scene_dungeon1.c    Dungeon scene (scene transition example)
     scene_battle.c      Turn-based battle with timed attacks/defense
     scene_settings.c    Settings menu (resolution + volume)
+    ui.h / ui.c         UI overlay system (pause menu + settings sub-page)
     settings.h / .c     Settings config (persistent JSON)
     audio.h / audio.c   Audio manager (crossfade, sections, events)
     event.h / event.c   Pub/sub event bus
@@ -107,7 +109,9 @@ Raylib is built as a static library (`libraylib.a`) and linked directly into the
 
 **Elevation system** -- collision bodies and tile layers have an `elevation` field. Collisions are only checked between bodies at the same elevation. Ramp objects (type `elevation_ramp` with `from_elevation`/`to_elevation` properties) transition the player between levels. Tile layers at a higher elevation than the player render semi-transparently above the player (ALttP-style).
 
-**Battle system** -- turn-based combat with timed action mechanics. During attack and defense phases, pressing Space/Enter at the right moment in the animation window yields Good or Excellent timing, which scales damage dealt/blocked. Battle music uses sectioned playback with loop regions that change with each battle phase.
+**UI overlay system** -- screen-space overlay that pauses the current scene. ESC opens an animated panel (ease-out cubic, ~0.25s) with Resume/Settings/Quit to Menu. The settings sub-page mirrors the settings scene (volume slider with live preview, resolution picker). Designed as an extensible system for future overlays (e.g., inventory).
+
+**Battle system** -- turn-based combat with timed action mechanics. During attack and defense phases, pressing Space/Enter at the right moment in the animation window yields Good or Excellent timing, which scales damage dealt/blocked. Battle music uses sectioned playback with loop regions that change with each battle phase. Flee is available as a menu option (no longer ESC).
 
 **Audio system** -- background music with 1.5s crossfading between tracks on scene transitions. Track deduplication prevents reloading when returning to a scene with the same BGM. Sectioned music supports named regions with start/end times and per-section looping, driven by event bus callbacks. Volume is adjustable in the settings menu with live preview.
 

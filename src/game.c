@@ -4,6 +4,7 @@
 #include "event.h"
 #include "audio.h"
 #include "settings.h"
+#include "ui.h"
 #include <stddef.h>
 #include <string.h>
 
@@ -131,6 +132,9 @@ void game_init(Game *game) {
     game->camera.rotation = 0.0f;
     game->camera.zoom = 2.0f;
 
+    // Reset UI overlay
+    ui_init(&game->ui);
+
     game->current_scene = SCENE_NONE;
     game->next_scene = SCENE_MENU;
     game->initialized = true;
@@ -141,7 +145,16 @@ void game_update(Game *game) {
         perform_transition(game);
     }
 
-    if (game->current_scene >= 0 && game->current_scene < SCENE_COUNT) {
+    // ESC opens pause overlay (skip on menu and settings scenes)
+    if (!ui_is_active(&game->ui) && IsKeyPressed(KEY_ESCAPE)
+        && game->current_scene != SCENE_MENU
+        && game->current_scene != SCENE_SETTINGS) {
+        ui_open(&game->ui);
+    }
+
+    if (ui_is_active(&game->ui)) {
+        ui_update(&game->ui, game);
+    } else if (game->current_scene >= 0 && game->current_scene < SCENE_COUNT) {
         SceneFuncs *funcs = &scene_table[game->current_scene];
         if (funcs->update) funcs->update(game);
     }
@@ -156,6 +169,10 @@ void game_draw(Game *game) {
         if (funcs->draw) funcs->draw(game);
     } else {
         ClearBackground(BLACK);
+    }
+
+    if (ui_is_active(&game->ui)) {
+        ui_draw(&game->ui, game);
     }
 }
 
