@@ -21,8 +21,8 @@ bash watch.sh        # file watcher: auto-rebuild on src/ changes
 
 ### Core
 - `src/main.c` -- entry point, game loop, F6 reinit. ~30 lines, calls game_init/update/draw directly. `SetExitKey(0)` disables raylib's default ESC-to-quit.
-- `src/game.h` -- `Game` struct (global state, scene management, event bus, UI overlay), `RenderLayer`, `SceneID`, and `BattlePhase` enums, function declarations
-- `src/game.c` -- game lifecycle, scene table dispatch, transitions. ESC interception opens UI overlay (skipped on menu/settings). Overlay gates scene update when active. Owns the scene table, performs init/cleanup/transition logic.
+- `src/game.h` -- `Game` struct (global state, scene management, event bus, UI overlay, inventory), `RenderLayer`, `SceneID`, and `BattlePhase` enums, function declarations
+- `src/game.c` -- game lifecycle, scene table dispatch, transitions. ESC opens pause overlay, I opens inventory overlay (both skipped on menu/settings). Overlay gates scene update when active. Owns the scene table, performs init/cleanup/transition logic.
 
 ### Scenes
 - `src/scene.h` -- `SceneFuncs` interface: init/cleanup/update/draw + persistent flag
@@ -35,7 +35,8 @@ bash watch.sh        # file watcher: auto-rebuild on src/ changes
 Each scene stores per-scene data in `game->scene_data[SCENE_ID]` (heap-allocated, cast as needed).
 
 ### Systems
-- `src/ui.h / ui.c` -- UI overlay system. State machine (closed/opening/open/closing) with ease-out cubic animation (~0.25s open, ~0.20s close). Pause page (Resume/Settings/Quit to Menu) and settings sub-page (volume slider with live preview, resolution picker, back with revert). `UIOverlay` struct embedded by value in `Game`. `ui_update()` returns true when active to gate scene updates. `ui_is_active()` checks if overlay is consuming input.
+- `src/inventory.h / inventory.c` -- player inventory system. `ItemID` enum (potion, key, sword, shield, rope, torch, map, compass), `ItemMetadata` table, `Inventory` struct with 32 slots + money. `inventory_add_item` stacks onto existing slots first, then fills empty. `inventory_remove_item` decrements and clears at zero. Initialized with test items (3 potions, 1 key, 1 sword, 1 shield, 5 torches, 1 rope) and 100 gold.
+- `src/ui.h / ui.c` -- UI overlay system. State machine (closed/opening/open/closing) with ease-out cubic animation (~0.25s open, ~0.20s close). Three pages: pause (Resume/Settings/Quit to Menu), settings sub-page (volume slider with live preview, resolution picker, back with revert), and inventory (8-column grid, item icons, quantity badges, detail panel). Page-dependent panel sizing (80% screen for inventory, 420x320 for pause/settings). `UIOverlay` struct embedded by value in `Game`. `ui_update()` returns true when active to gate scene updates. `ui_is_active()` checks if overlay is consuming input.
 - `src/audio.h / audio.c` -- audio manager. Crossfading music (1.5s fade, two-stream system), track dedup via path comparison, volume control. Sectioned music with named regions, loop support, and `SeekMusicStream`-based section playback. Subscribes to `EVT_SCENE_ENTER` (scene BGM mapping) and `EVT_BATTLE_PHASE_CHANGE` (battle section mapping) via event bus.
 - `src/event.h / event.c` -- pub/sub event bus. Ring buffer of 256 events, 16 listeners per event type. `event_flush()` snapshots queue length to defer events emitted by callbacks. Wire: created in `game_init`, flushed after scene update, cleared on scene transitions. `event_clear()` resets the queue but preserves listener subscriptions.
 - `src/tilemap.h / tilemap.c` -- Tiled JSON (.tmj/.tsj) loader and viewport-culled renderer. Handles tile flipping, external tilesets, render layer assignment via custom properties. `tilemap_draw_layer_tinted()` supports per-call tint color for elevation transparency.
@@ -52,7 +53,8 @@ Each scene stores per-scene data in `game->scene_data[SCENE_ID]` (heap-allocated
 - **Elevation system**: tile layers and collision bodies have an `elevation` field (int, from Tiled custom properties). Collisions only resolve between bodies at the same elevation. Tile layers above the player's elevation are forced to `RENDER_LAYER_ABOVE_PLAYER` and drawn semi-transparent (alpha 160). Ramp objects (type `elevation_ramp`, custom props `from_elevation`/`to_elevation`) transition the player between elevation levels.
 - **Scene persistence**: overworld is `persistent = true` -- its data survives scene transitions. Non-persistent scenes (menu, dungeons, battles) are cleaned up on exit and re-initialized on entry.
 - **Tilemap custom properties**: Tiled layer property `render_layer` (string) maps to `RenderLayer` enum. Tiled layer property `elevation` (int) sets the layer's height level. Collision rects come from an object layer named `objects_collision`. Object type `elevation_ramp` with `from_elevation`/`to_elevation` props defines ramp zones.
-- **UI overlay**: ESC opens animated pause overlay (except on menu/settings scenes). `game_update` checks ESC before scene update; when overlay is active, scene update is skipped but audio/events still tick. Overlay draws on top of frozen scene frame. Settings sub-page snapshots volume on entry and reverts on ESC/Back. Quit to Menu closes instantly (no animation) and triggers scene transition.
+- **UI overlay**: ESC opens animated pause overlay, I opens inventory overlay (both except on menu/settings scenes). `game_update` checks ESC/I before scene update; when overlay is active, scene update is skipped but audio/events still tick. Overlay draws on top of frozen scene frame. Settings sub-page snapshots volume on entry and reverts on ESC/Back. Quit to Menu closes instantly (no animation) and triggers scene transition.
+- **Inventory**: `Inventory` struct lives in `Game` (persists across scenes). 32 slots, stackable items. Grid UI with 8 columns, sack icon placeholder (`item_icon` texture loaded once in `game_init`), quantity badges, item detail panel below grid. Arrow key navigation with wrapping. ESC or I closes.
 - **Battle timing**: attack/defense phases use a normalized `anim_t` (0-1). Pressing action during the timing window (0.75-0.92) yields Good (1.5x) or Excellent (2x) damage/block multipliers.
 - **Audio crossfade**: `audio_play_music()` moves the current stream to a fading slot and loads the new track at volume 0, interpolating over `fade_duration` (1.5s). Track dedup via `current_path` strcmp prevents reloading the same track (e.g., returning to overworld from dungeon).
 - **Sectioned music**: `MusicSection` structs define named time regions with start/end and loop flag. `audio_play_section()` seeks to a section's start; `audio_update()` checks boundaries and loops or deactivates. Battle sections (intro, battle_loop, attack_hit, victory, defeat) are driven by `EVT_BATTLE_PHASE_CHANGE` events.
@@ -65,6 +67,7 @@ All in `assets/`, loaded as `../assets/` relative to `build/`:
 - `overworld.tsj` -- Tiled tileset (external)
 - `overworld.png` -- tileset spritesheet
 - `player.png` -- player spritesheet (16x32 frames)
+- `sack.png` -- placeholder item icon for inventory grid
 - `overworld_bgm.mp3` -- overworld background music (looping)
 - `battle_bgm.mp3` -- battle background music (sectioned: intro, battle_loop, attack_hit, victory, defeat)
 

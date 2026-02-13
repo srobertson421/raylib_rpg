@@ -4,6 +4,7 @@
 #include "raylib.h"
 #include "settings.h"
 #include "ui.h"
+#include "inventory.h"
 #include <stdbool.h>
 
 typedef enum RenderLayer {
@@ -66,6 +67,10 @@ typedef struct Game {
 
     // UI overlay
     UIOverlay ui;
+
+    // Inventory
+    Inventory inventory;
+    Texture2D item_icon;    // sack.png, loaded once
 
     // Scene management
     SceneID current_scene;

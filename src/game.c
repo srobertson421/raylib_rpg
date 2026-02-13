@@ -135,6 +135,11 @@ void game_init(Game *game) {
     // Reset UI overlay
     ui_init(&game->ui);
 
+    // Inventory
+    inventory_init(&game->inventory);
+    if (game->item_icon.id != 0) UnloadTexture(game->item_icon);
+    game->item_icon = LoadTexture("../assets/sack.png");
+
     game->current_scene = SCENE_NONE;
     game->next_scene = SCENE_MENU;
     game->initialized = true;
@@ -150,6 +155,13 @@ void game_update(Game *game) {
         && game->current_scene != SCENE_MENU
         && game->current_scene != SCENE_SETTINGS) {
         ui_open(&game->ui);
+    }
+
+    // I opens inventory overlay (skip on menu and settings scenes)
+    if (!ui_is_active(&game->ui) && IsKeyPressed(KEY_I)
+        && game->current_scene != SCENE_MENU
+        && game->current_scene != SCENE_SETTINGS) {
+        ui_open_inventory(&game->ui);
     }
 
     if (ui_is_active(&game->ui)) {
@@ -190,6 +202,12 @@ void game_cleanup(Game *game) {
     if (game->player_sprite) {
         sprite_destroy(game->player_sprite);
         game->player_sprite = NULL;
+    }
+
+    // Clean up inventory icon (while GL context alive)
+    if (game->item_icon.id != 0) {
+        UnloadTexture(game->item_icon);
+        game->item_icon = (Texture2D){ 0 };
     }
 
     // Clean up audio (before event bus, while GL context alive)

@@ -2,6 +2,7 @@
 #include "game.h"
 #include "settings.h"
 #include "audio.h"
+#include "inventory.h"
 #include <stdio.h>
 
 #define UI_OPEN_DURATION  0.25f
@@ -32,6 +33,15 @@ void ui_open(UIOverlay *ui) {
     ui->anim_timer = 0;
     ui->page = UI_PAGE_PAUSE;
     ui->pause_cursor = 0;
+}
+
+void ui_open_inventory(UIOverlay *ui) {
+    if (ui->state != UI_CLOSED) return;
+    ui->state = UI_OPENING;
+    ui->anim_timer = 0;
+    ui->page = UI_PAGE_INVENTORY;
+    ui->inv_cursor = 0;
+    ui->inv_scroll = 0;
 }
 
 void ui_close(UIOverlay *ui) {
@@ -145,6 +155,54 @@ static void update_settings_page(UIOverlay *ui, Game *game) {
     }
 }
 
+// --- Inventory page input ---
+
+#define INV_COLS 8
+
+static void update_inventory_page(UIOverlay *ui, Game *game) {
+    (void)game;
+    int total_slots = MAX_INVENTORY_SLOTS;
+    int rows = (total_slots + INV_COLS - 1) / INV_COLS;
+
+    if (IsKeyPressed(KEY_RIGHT)) {
+        int row = ui->inv_cursor / INV_COLS;
+        int col = ui->inv_cursor % INV_COLS;
+        col = (col + 1) % INV_COLS;
+        ui->inv_cursor = row * INV_COLS + col;
+    }
+    if (IsKeyPressed(KEY_LEFT)) {
+        int row = ui->inv_cursor / INV_COLS;
+        int col = ui->inv_cursor % INV_COLS;
+        col = (col - 1 + INV_COLS) % INV_COLS;
+        ui->inv_cursor = row * INV_COLS + col;
+    }
+    if (IsKeyPressed(KEY_DOWN)) {
+        int row = ui->inv_cursor / INV_COLS;
+        int col = ui->inv_cursor % INV_COLS;
+        row = (row + 1) % rows;
+        ui->inv_cursor = row * INV_COLS + col;
+    }
+    if (IsKeyPressed(KEY_UP)) {
+        int row = ui->inv_cursor / INV_COLS;
+        int col = ui->inv_cursor % INV_COLS;
+        row = (row - 1 + rows) % rows;
+        ui->inv_cursor = row * INV_COLS + col;
+    }
+
+    if (ui->inv_cursor >= total_slots) ui->inv_cursor = total_slots - 1;
+
+    // Mouse wheel scroll (future-proofing)
+    float wheel = GetMouseWheelMove();
+    if (wheel != 0.0f) {
+        ui->inv_scroll -= wheel * 48.0f;
+        if (ui->inv_scroll < 0) ui->inv_scroll = 0;
+    }
+
+    if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_I)) {
+        ui_close(ui);
+    }
+}
+
 // --- Update (returns true if overlay is active / scene should be paused) ---
 
 bool ui_update(UIOverlay *ui, Game *game) {
@@ -165,8 +223,10 @@ bool ui_update(UIOverlay *ui, Game *game) {
     case UI_OPEN:
         if (ui->page == UI_PAGE_PAUSE) {
             update_pause_page(ui, game);
-        } else {
+        } else if (ui->page == UI_PAGE_SETTINGS) {
             update_settings_page(ui, game);
+        } else if (ui->page == UI_PAGE_INVENTORY) {
+            update_inventory_page(ui, game);
         }
         return ui->state != UI_CLOSED; // Quit to Menu sets CLOSED instantly
 
@@ -332,6 +392,117 @@ static void draw_settings_page(UIOverlay *ui, Game *game,
              (int)(panel_y + panel_h - 30), 14, (Color){ 150, 150, 150, ca });
 }
 
+// --- Inventory draw ---
+
+static void draw_inventory_page(UIOverlay *ui, Game *game,
+                                 float panel_x, float panel_y,
+                                 float panel_w, float panel_h,
+                                 float content_alpha) {
+    unsigned char ca = (unsigned char)(255 * content_alpha);
+    Inventory *inv = &game->inventory;
+
+    // Header
+    const char *title = "INVENTORY";
+    int title_w = MeasureText(title, 36);
+    DrawText(title, (int)(panel_x + panel_w / 2 - title_w / 2),
+             (int)(panel_y + 20), 36, (Color){ 255, 255, 255, ca });
+
+    // Gold display (right-aligned)
+    char gold_text[32];
+    snprintf(gold_text, sizeof(gold_text), "Gold: %d", inv->money);
+    int gold_w = MeasureText(gold_text, 20);
+    DrawText(gold_text, (int)(panel_x + panel_w - gold_w - 24),
+             (int)(panel_y + 28), 20, (Color){ 255, 215, 0, ca });
+
+    // Grid layout
+    int cell_size = 48;
+    int cols = INV_COLS;
+    int grid_w = cols * cell_size;
+    float grid_x = panel_x + (panel_w - grid_w) / 2.0f;
+    float grid_y = panel_y + 68;
+    int visible_rows = 4;
+    float grid_h = (float)(visible_rows * cell_size);
+
+    // Detail area sits below grid
+    float detail_y = grid_y + grid_h + 12;
+
+    // Draw grid with scissor clipping
+    BeginScissorMode((int)grid_x, (int)grid_y, grid_w, (int)grid_h);
+
+    int total_slots = MAX_INVENTORY_SLOTS;
+    int total_rows = (total_slots + cols - 1) / cols;
+    (void)total_rows;
+
+    for (int i = 0; i < total_slots; i++) {
+        int row = i / cols;
+        int col = i % cols;
+        float cx = grid_x + col * cell_size;
+        float cy = grid_y + row * cell_size - ui->inv_scroll;
+
+        // Skip if fully outside visible area
+        if (cy + cell_size < grid_y || cy > grid_y + grid_h) continue;
+
+        // Cell background
+        DrawRectangle((int)cx + 1, (int)cy + 1, cell_size - 2, cell_size - 2,
+                      (Color){ 20, 15, 35, (unsigned char)(200 * content_alpha) });
+
+        // Border
+        Color border_c;
+        if (i == ui->inv_cursor) {
+            border_c = (Color){ 255, 255, 100, ca };
+        } else {
+            border_c = (Color){ 80, 60, 100, ca };
+        }
+        DrawRectangleLines((int)cx + 1, (int)cy + 1, cell_size - 2, cell_size - 2, border_c);
+
+        // Item icon + quantity
+        InventorySlot *slot = &inv->slots[i];
+        if (slot->id != ITEM_NONE) {
+            // Draw sack icon scaled to fit cell with padding
+            if (game->item_icon.id != 0) {
+                float icon_scale = (float)(cell_size - 16) / (float)game->item_icon.width;
+                if ((float)game->item_icon.height * icon_scale > cell_size - 16) {
+                    icon_scale = (float)(cell_size - 16) / (float)game->item_icon.height;
+                }
+                float iw = game->item_icon.width * icon_scale;
+                float ih = game->item_icon.height * icon_scale;
+                float ix = cx + (cell_size - iw) / 2.0f;
+                float iy = cy + (cell_size - ih) / 2.0f;
+                DrawTextureEx(game->item_icon, (Vector2){ ix, iy }, 0, icon_scale,
+                              (Color){ 255, 255, 255, ca });
+            }
+
+            // Quantity badge
+            if (slot->quantity > 1) {
+                char qty[16];
+                snprintf(qty, sizeof(qty), "x%d", slot->quantity);
+                DrawText(qty, (int)(cx + 3), (int)(cy + cell_size - 14),
+                         10, (Color){ 255, 255, 255, ca });
+            }
+        }
+    }
+
+    EndScissorMode();
+
+    // Detail area
+    if (ui->inv_cursor >= 0 && ui->inv_cursor < total_slots) {
+        InventorySlot *sel = &inv->slots[ui->inv_cursor];
+        if (sel->id != ITEM_NONE) {
+            const ItemMetadata *meta = inventory_get_metadata(sel->id);
+            DrawText(meta->name, (int)(grid_x), (int)detail_y,
+                     24, (Color){ 255, 255, 100, ca });
+            DrawText(meta->description, (int)(grid_x), (int)(detail_y + 28),
+                     18, (Color){ 180, 180, 180, ca });
+        }
+    }
+
+    // Help text
+    const char *help = "ARROWS: Navigate   I/ESC: Close";
+    int help_w = MeasureText(help, 14);
+    DrawText(help, (int)(panel_x + panel_w / 2 - help_w / 2),
+             (int)(panel_y + panel_h - 28), 14, (Color){ 150, 150, 150, ca });
+}
+
 // --- Main draw ---
 
 void ui_draw(UIOverlay *ui, Game *game) {
@@ -345,9 +516,15 @@ void ui_draw(UIOverlay *ui, Game *game) {
     unsigned char backdrop_alpha = (unsigned char)(150.0f * anim_t);
     DrawRectangle(0, 0, (int)sw, (int)sh, (Color){ 0, 0, 0, backdrop_alpha });
 
-    // Panel dimensions (scale from center)
-    float full_w = 420.0f;
-    float full_h = 320.0f;
+    // Panel dimensions (page-dependent, scale from center)
+    float full_w, full_h;
+    if (ui->page == UI_PAGE_INVENTORY) {
+        full_w = sw * 0.8f;
+        full_h = sh * 0.8f;
+    } else {
+        full_w = 420.0f;
+        full_h = 320.0f;
+    }
     float panel_w = full_w * anim_t;
     float panel_h = full_h * anim_t;
     float panel_x = (sw - panel_w) / 2.0f;
@@ -381,7 +558,9 @@ void ui_draw(UIOverlay *ui, Game *game) {
 
     if (ui->page == UI_PAGE_PAUSE) {
         draw_pause_page(ui, panel_x, panel_y, panel_w, panel_h, content_alpha);
-    } else {
+    } else if (ui->page == UI_PAGE_SETTINGS) {
         draw_settings_page(ui, game, panel_x, panel_y, panel_w, panel_h, content_alpha);
+    } else if (ui->page == UI_PAGE_INVENTORY) {
+        draw_inventory_page(ui, game, panel_x, panel_y, panel_w, panel_h, content_alpha);
     }
 }

@@ -14,6 +14,7 @@ typedef enum UIOverlayState {
 typedef enum UIPage {
     UI_PAGE_PAUSE,
     UI_PAGE_SETTINGS,
+    UI_PAGE_INVENTORY,
 } UIPage;
 
 typedef struct UIOverlay {
@@ -30,12 +31,17 @@ typedef struct UIOverlay {
     int resolution_cursor;
     float volume_value;     // working copy (live preview)
     float saved_volume;     // snapshot for revert on ESC/Back
+
+    // Inventory page
+    int inv_cursor;         // flat index into slots array (0..MAX_INVENTORY_SLOTS-1)
+    float inv_scroll;       // pixel offset for smooth scrolling
 } UIOverlay;
 
 typedef struct Game Game;
 
 void ui_init(UIOverlay *ui);
 void ui_open(UIOverlay *ui);
+void ui_open_inventory(UIOverlay *ui);
 void ui_close(UIOverlay *ui);
 bool ui_update(UIOverlay *ui, Game *game);
 void ui_draw(UIOverlay *ui, Game *game);
