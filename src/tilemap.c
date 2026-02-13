@@ -598,3 +598,17 @@ void tilemap_draw_all(TileMap *map, Camera2D camera) {
         tilemap_draw_layer(map, i, camera);
     }
 }
+
+MapObject *tilemap_find_object(TileMap *map, const char *layer_name, const char *type) {
+    if (!map) return NULL;
+    for (int i = 0; i < map->object_layer_count; i++) {
+        if (strcmp(map->object_layers[i].name, layer_name) != 0) continue;
+        ObjectLayer *layer = &map->object_layers[i];
+        for (int j = 0; j < layer->object_count; j++) {
+            if (strcmp(layer->objects[j].type, type) == 0) {
+                return &layer->objects[j];
+            }
+        }
+    }
+    return NULL;
+}

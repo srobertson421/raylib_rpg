@@ -85,6 +85,12 @@ void settings_apply_resolution(Game *game) {
     int h = game->settings.screen_height;
     SetWindowSize(w, h);
     game->camera.offset = (Vector2){ w / 2.0f, h / 2.0f };
+
+    // Recreate render target to match new window size
+    if (game->render_target.id != 0) {
+        UnloadRenderTexture(game->render_target);
+    }
+    game->render_target = LoadRenderTexture(w, h);
 }
 
 void settings_apply_volume(Game *game) {

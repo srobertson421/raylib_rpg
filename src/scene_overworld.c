@@ -26,13 +26,18 @@ static void overworld_init(Game *game) {
 
     data->tilemap = tilemap_load("../assets/overworld.tmj");
 
-    // Player start position (center of map)
+    // Player start position (from Tiled marker, fallback to center of map)
+    data->pos_x = 400.0f;
+    data->pos_y = 300.0f;
     if (data->tilemap && data->tilemap->loaded) {
-        data->pos_x = (data->tilemap->width * data->tilemap->tilewidth) / 2.0f;
-        data->pos_y = (data->tilemap->height * data->tilemap->tileheight) / 2.0f;
-    } else {
-        data->pos_x = 400.0f;
-        data->pos_y = 300.0f;
+        MapObject *spawn = tilemap_find_object(data->tilemap, "objects_markers", "player_start");
+        if (spawn) {
+            data->pos_x = (float)spawn->x;
+            data->pos_y = (float)spawn->y;
+        } else {
+            data->pos_x = (data->tilemap->width * data->tilemap->tilewidth) / 2.0f;
+            data->pos_y = (data->tilemap->height * data->tilemap->tileheight) / 2.0f;
+        }
     }
 
     // Collision setup
@@ -209,12 +214,19 @@ static void overworld_draw(Game *game) {
     EndMode2D();
 
     // HUD
-    DrawText("Arrows: move | 1: dungeon | 2: battle | F3: collisions | F6: reinit", 10, 10, 20, WHITE);
+    DrawText("Arrows: move | 1: dungeon | 2: battle | F3: collisions | F4: +1hr | F5: torch | F6: reinit", 10, 10, 20, WHITE);
     DrawFPS(10, 40);
 
     char elev_buf[32];
     snprintf(elev_buf, sizeof(elev_buf), "Elevation: %d", data->player_elevation);
     DrawText(elev_buf, 10, 60, 20, YELLOW);
+
+    // Time of day clock
+    int hour = (int)game->time_of_day;
+    int minute = (int)((game->time_of_day - hour) * 60.0f);
+    char time_buf[16];
+    snprintf(time_buf, sizeof(time_buf), "%02d:%02d", hour, minute);
+    DrawText(time_buf, GetScreenWidth() - 80, 10, 20, WHITE);
 }
 
 SceneFuncs scene_overworld_funcs(void) {

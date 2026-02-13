@@ -21,8 +21,8 @@ bash watch.sh        # file watcher: auto-rebuild on src/ changes
 
 ### Core
 - `src/main.c` -- entry point, game loop, F6 reinit. ~30 lines, calls game_init/update/draw directly. `SetExitKey(0)` disables raylib's default ESC-to-quit.
-- `src/game.h` -- `Game` struct (global state, scene management, event bus, UI overlay, inventory), `RenderLayer`, `SceneID`, and `BattlePhase` enums, function declarations
-- `src/game.c` -- game lifecycle, scene table dispatch, transitions. ESC opens pause overlay, I opens inventory overlay (both skipped on menu/settings). Overlay gates scene update when active. Owns the scene table, performs init/cleanup/transition logic.
+- `src/game.h` -- `Game` struct (global state, scene management, event bus, UI overlay, inventory, day/night + torch light), `RenderLayer`, `SceneID`, and `BattlePhase` enums, function declarations
+- `src/game.c` -- game lifecycle, scene table dispatch, transitions. ESC opens pause overlay, I opens inventory overlay (both skipped on menu/settings). Overlay gates scene update when active. F5 toggles torch light. Owns the scene table, performs init/cleanup/transition logic.
 
 ### Scenes
 - `src/scene.h` -- `SceneFuncs` interface: init/cleanup/update/draw + persistent flag
@@ -60,6 +60,7 @@ Each scene stores per-scene data in `game->scene_data[SCENE_ID]` (heap-allocated
 - **Sectioned music**: `MusicSection` structs define named time regions with start/end and loop flag. `audio_play_section()` seeks to a section's start; `audio_update()` checks boundaries and loops or deactivates. Battle sections (intro, battle_loop, attack_hit, victory, defeat) are driven by `EVT_BATTLE_PHASE_CHANGE` events.
 - **Event-driven audio**: audio subscribes to `EVT_SCENE_ENTER` and `EVT_BATTLE_PHASE_CHANGE` in `game_init()`. Scene BGM is mapped via `scene_bgm_path()`. Scenes no longer call audio directly.
 - **Tile animations**: Tiled per-tile animations are parsed from the `tiles` array in tileset JSON. `TileAnim` structs are stored in a flat `anim_lookup` array (indexed by local tile ID) for O(1) draw-time resolution. A shared `anim_time` clock (ms) on `TileMap` is advanced by `tilemap_update(dt)` in the scene update. Current frame is resolved via modular arithmetic over `total_duration`. Animations pause when the UI overlay is active (scene update gated).
+- **Torch light**: Player torch is a point light in the day/night shader. Three uniforms (`screen_size`, `light_pos`, `light_radius`) drive a `smoothstep` blend from warm torch tint `(1.0, 0.9, 0.7)` at the player's screen position to the scene tint at the outer radius. Inner radius is 30% of outer for a solid bright core. Radius is `80 * camera.zoom` pixels (scales with zoom). `light_radius = 0` disables the effect entirely. F5 toggles on/off (debug).
 
 ## Assets
 
@@ -71,6 +72,7 @@ All in `assets/`, loaded as `../assets/` relative to `build/`:
 - `sack.png` -- placeholder item icon for inventory grid
 - `overworld_bgm.mp3` -- overworld background music (looping)
 - `battle_bgm.mp3` -- battle background music (sectioned: intro, battle_loop, attack_hit, victory, defeat)
+- `daynight.fs` -- day/night post-process fragment shader (time-of-day tinting + torch point light)
 
 ## Common Gotchas
 

@@ -72,6 +72,20 @@ typedef struct Game {
     Inventory inventory;
     Texture2D item_icon;    // sack.png, loaded once
 
+    // Day/night cycle
+    RenderTexture2D render_target;     // scene draws here, then post-processed to screen
+    Shader daynight_shader;            // post-process fragment shader
+    int daynight_time_loc;             // cached uniform location for time_of_day
+    float time_of_day;                 // 0.0–24.0 (hours), wraps
+    float time_speed;                  // game-minutes per real-second
+    bool daynight_active;              // true when current scene uses the shader
+
+    // Torch light
+    bool torch_active;                 // debug toggle for torch light (F5)
+    int light_pos_loc;                 // cached uniform: light_pos (vec2, screen pixels)
+    int light_radius_loc;             // cached uniform: light_radius (float, screen pixels)
+    int screen_size_loc;              // cached uniform: screen_size (vec2)
+
     // Scene management
     SceneID current_scene;
     SceneID next_scene;

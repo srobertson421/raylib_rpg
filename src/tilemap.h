@@ -92,5 +92,6 @@ void tilemap_update(TileMap *map, float dt);
 void tilemap_draw_layer(TileMap *map, int layer_index, Camera2D camera);
 void tilemap_draw_layer_tinted(TileMap *map, int layer_index, Camera2D camera, Color tint);
 void tilemap_draw_all(TileMap *map, Camera2D camera);
+MapObject *tilemap_find_object(TileMap *map, const char *layer_name, const char *type);
 
 #endif

@@ -140,6 +140,20 @@ void game_init(Game *game) {
     if (game->item_icon.id != 0) UnloadTexture(game->item_icon);
     game->item_icon = LoadTexture("../assets/sack.png");
 
+    // Day/night cycle
+    if (game->render_target.id != 0) UnloadRenderTexture(game->render_target);
+    if (game->daynight_shader.id != 0) UnloadShader(game->daynight_shader);
+    game->render_target = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
+    game->daynight_shader = LoadShader(NULL, "../assets/daynight.fs");
+    game->daynight_time_loc = GetShaderLocation(game->daynight_shader, "time_of_day");
+    game->light_pos_loc = GetShaderLocation(game->daynight_shader, "light_pos");
+    game->light_radius_loc = GetShaderLocation(game->daynight_shader, "light_radius");
+    game->screen_size_loc = GetShaderLocation(game->daynight_shader, "screen_size");
+    game->time_of_day = 8.0f;
+    game->time_speed = 1.0f;
+    game->daynight_active = false;
+    game->torch_active = false;
+
     game->current_scene = SCENE_NONE;
     game->next_scene = SCENE_MENU;
     game->initialized = true;
@@ -149,6 +163,25 @@ void game_update(Game *game) {
     if (game->next_scene != SCENE_NONE) {
         perform_transition(game);
     }
+
+    // Advance day/night clock (always ticks, even during overlay)
+    game->time_of_day += game->time_speed * GetFrameTime() / 60.0f;
+    if (game->time_of_day >= 24.0f) game->time_of_day -= 24.0f;
+
+    // F5: toggle torch light (debug)
+    if (IsKeyPressed(KEY_F5)) {
+        game->torch_active = !game->torch_active;
+    }
+
+    // F4: fast-forward time by +1 hour (debug)
+    if (IsKeyPressed(KEY_F4)) {
+        game->time_of_day += 1.0f;
+        if (game->time_of_day >= 24.0f) game->time_of_day -= 24.0f;
+    }
+
+    // Determine if current scene uses the day/night shader
+    game->daynight_active = (game->current_scene == SCENE_OVERWORLD ||
+                              game->current_scene == SCENE_DUNGEON_1);
 
     // ESC opens pause overlay (skip on menu and settings scenes)
     if (!ui_is_active(&game->ui) && IsKeyPressed(KEY_ESCAPE)
@@ -176,13 +209,38 @@ void game_update(Game *game) {
 }
 
 void game_draw(Game *game) {
-    if (game->current_scene >= 0 && game->current_scene < SCENE_COUNT) {
+    if (game->daynight_active && game->current_scene >= 0 && game->current_scene < SCENE_COUNT) {
+        // Draw scene into render texture, then post-process with shader
+        BeginTextureMode(game->render_target);
+            SceneFuncs *funcs = &scene_table[game->current_scene];
+            if (funcs->draw) funcs->draw(game);
+        EndTextureMode();
+
+        SetShaderValue(game->daynight_shader, game->daynight_time_loc,
+                       &game->time_of_day, SHADER_UNIFORM_FLOAT);
+
+        // Torch light uniforms
+        Vector2 player_screen = GetWorldToScreen2D(game->camera.target, game->camera);
+        float light_radius = game->torch_active ? 80.0f * game->camera.zoom : 0.0f;
+        float screen_size[2] = { (float)GetScreenWidth(), (float)GetScreenHeight() };
+        SetShaderValue(game->daynight_shader, game->light_pos_loc, &player_screen, SHADER_UNIFORM_VEC2);
+        SetShaderValue(game->daynight_shader, game->light_radius_loc, &light_radius, SHADER_UNIFORM_FLOAT);
+        SetShaderValue(game->daynight_shader, game->screen_size_loc, screen_size, SHADER_UNIFORM_VEC2);
+
+        BeginShaderMode(game->daynight_shader);
+            float w = (float)game->render_target.texture.width;
+            float h = (float)game->render_target.texture.height;
+            DrawTextureRec(game->render_target.texture,
+                           (Rectangle){ 0, 0, w, -h }, (Vector2){ 0, 0 }, WHITE);
+        EndShaderMode();
+    } else if (game->current_scene >= 0 && game->current_scene < SCENE_COUNT) {
         SceneFuncs *funcs = &scene_table[game->current_scene];
         if (funcs->draw) funcs->draw(game);
     } else {
         ClearBackground(BLACK);
     }
 
+    // UI overlay always draws on top, unaffected by shader
     if (ui_is_active(&game->ui)) {
         ui_draw(&game->ui, game);
     }
@@ -208,6 +266,16 @@ void game_cleanup(Game *game) {
     if (game->item_icon.id != 0) {
         UnloadTexture(game->item_icon);
         game->item_icon = (Texture2D){ 0 };
+    }
+
+    // Clean up day/night resources (while GL context alive)
+    if (game->render_target.id != 0) {
+        UnloadRenderTexture(game->render_target);
+        game->render_target = (RenderTexture2D){ 0 };
+    }
+    if (game->daynight_shader.id != 0) {
+        UnloadShader(game->daynight_shader);
+        game->daynight_shader = (Shader){ 0 };
     }
 
     // Clean up audio (before event bus, while GL context alive)
