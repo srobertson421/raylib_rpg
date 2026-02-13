@@ -25,7 +25,7 @@ A 2D top-down adventure game built from scratch in C with [raylib](https://www.r
 ## Getting Started
 
 ```bash
-# One-time setup: clone raylib 5.5 and build it as a shared library
+# One-time setup: clone raylib 5.5 and build it as a static library
 bash setup.sh
 
 # Build the game
@@ -78,11 +78,11 @@ raylib_fun/
 
 | Script | Purpose |
 |--------|---------|
-| `bash setup.sh` | One-time: clone raylib 5.5, build as DLL |
+| `bash setup.sh` | One-time: clone raylib 5.5, build static lib |
 | `bash build.sh` | Compile all source into `build/main.exe` |
 | `bash watch.sh` | Watch `src/` for changes and auto-rebuild |
 
-Raylib is built as a shared library (`raylib.dll`). The game links against the import library (`libraylibdll.a`) and ships with the DLL.
+Raylib is built as a static library (`libraylib.a`) and linked directly into the executable -- no DLL needed at runtime.
 
 ## Architecture Notes
 

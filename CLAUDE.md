@@ -5,14 +5,14 @@ Plain C, single-executable 2D game built with raylib 5.5 on Windows.
 ## Toolchain
 
 - **Compiler**: w64devkit (GCC) at `~/w64devkit/w64devkit/bin/` -- build scripts auto-detect this
-- **Raylib**: built as a shared library (`raylib.dll`), linked via `build/libraylibdll.a`
+- **Raylib**: built as a static library (`build/libraylib.a`), linked directly into the executable
 - **Build**: `bash build.sh` compiles everything into `build/main.exe`
 - **Run**: must run from `build/` directory so relative asset paths (`../assets/`) resolve
 
 ## Build Commands
 
 ```
-bash setup.sh        # one-time: clone raylib + build DLL
+bash setup.sh        # one-time: clone raylib + build static lib
 bash build.sh        # full build: all .c files -> build/main.exe
 bash watch.sh        # file watcher: auto-rebuild on src/ changes
 ```

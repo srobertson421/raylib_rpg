@@ -26,7 +26,7 @@ else
     echo "raylib/ already exists, skipping clone."
 fi
 
-echo "=== Building raylib as DLL ==="
+echo "=== Building raylib as static library ==="
 bash build_raylib.sh
 
 echo "=== Setup complete ==="

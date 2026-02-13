@@ -13,7 +13,7 @@ fi
 mkdir -p build
 
 RAYLIB_INCLUDE="raylib/src"
-RAYLIB_IMPORT_LIB="build/libraylibdll.a"
+RAYLIB_LIB="build/libraylib.a"
 
 echo "=== Building main.exe ==="
 gcc -o build/main.exe \
@@ -22,7 +22,7 @@ gcc -o build/main.exe \
     src/tilemap.c src/cJSON.c src/collision.c src/sprite.c \
     -I"$RAYLIB_INCLUDE" \
     -Isrc \
-    "$RAYLIB_IMPORT_LIB" \
+    "$RAYLIB_LIB" \
     -lopengl32 -lgdi32 -lwinmm \
     -Wall -Wextra -O2
 

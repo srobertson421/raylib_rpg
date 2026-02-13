@@ -10,15 +10,14 @@ if [ -d "$W64DEV" ] && ! command -v gcc &>/dev/null; then
     export PATH="$W64DEV:$PATH"
 fi
 
-echo "=== Building raylib as shared library (DLL) ==="
+echo "=== Building raylib as static library ==="
 
 cd raylib/src
 make clean
-make PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=SHARED RAYLIB_BUILD_MODE=RELEASE -j$(nproc)
+make PLATFORM=PLATFORM_DESKTOP RAYLIB_BUILD_MODE=RELEASE -j$(nproc)
 
-echo "=== Copying raylib DLL and import lib to build/ ==="
+echo "=== Copying static library to build/ ==="
 mkdir -p ../../build
-cp raylib.dll ../../build/
-cp libraylibdll.a ../../build/
+cp libraylib.a ../../build/
 
-echo "=== raylib DLL build complete ==="
+echo "=== raylib static build complete ==="
