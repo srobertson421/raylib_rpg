@@ -13,6 +13,7 @@ A 2D top-down adventure game built from scratch in C with [raylib](https://www.r
 - **Turn-based battle system** -- timed attacks and defense with animated lunges, damage multipliers, and timing feedback
 - **Elevation system** -- collision filtering by elevation, ramp/stair transitions, and ALttP-style visual layering (higher terrain renders semi-transparent above the player)
 - **Render layers** -- label-based draw ordering (ground, below player, player, above player) with elevation-aware overrides
+- **Water shader + player reflection** -- world-space brightness waves on water tiles, plus a vertically-flipped player reflection with UV displacement ripple effect, masked by draw order
 - **AABB collision** -- axis-aligned bounding box collision with wall-sliding and per-body elevation, loaded from Tiled object layers
 - **Animated sprites** -- spritesheet-based animation system with named animations and directional facing
 - **Audio system** -- background music with crossfading between scenes, track deduplication, volume control, and sectioned music with loop regions for battle phases
@@ -50,6 +51,7 @@ cd build && ./main.exe
 | 2 | Enter battle |
 | Escape | Open pause menu (in-game) / back (menus) |
 | F3 | Toggle collision debug wireframes |
+| F5 | Toggle torch light |
 | F6 | Reinitialize game state |
 
 ## Project Structure

@@ -221,6 +221,18 @@ static void overworld_draw(Game *game) {
                 }
 
                 if (shader_active) EndShaderMode();
+
+                // Draw player reflection immediately after water layer (at matching elevation)
+                if (layer->shader_name[0] && strcmp(layer->shader_name, "water") == 0
+                    && game->player_sprite && data->player_elevation == layer->elevation) {
+                    float t = (float)GetTime();
+                    SetShaderValue(game->reflection_shader, game->reflection_time_loc, &t, SHADER_UNIFORM_FLOAT);
+
+                    BeginShaderMode(game->reflection_shader);
+                    float reflect_y = data->pos_y;  // At player's feet, extending downward
+                    sprite_draw_reflected(game->player_sprite, data->pos_x, reflect_y, WHITE);
+                    EndShaderMode();
+                }
             }
         }
 

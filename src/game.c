@@ -157,10 +157,15 @@ void game_init(Game *game) {
     // Water shader
     if (game->water_shader.id != 0) UnloadShader(game->water_shader);
     game->water_shader = LoadShader(NULL, "../assets/water.fs");
-    game->water_time_loc       = GetShaderLocation(game->water_shader, "time");
+    game->water_time_loc = GetShaderLocation(game->water_shader, "time");
     game->water_cam_target_loc = GetShaderLocation(game->water_shader, "camera_target");
     game->water_cam_offset_loc = GetShaderLocation(game->water_shader, "camera_offset");
-    game->water_cam_zoom_loc   = GetShaderLocation(game->water_shader, "camera_zoom");
+    game->water_cam_zoom_loc = GetShaderLocation(game->water_shader, "camera_zoom");
+
+    // Reflection shader
+    if (game->reflection_shader.id != 0) UnloadShader(game->reflection_shader);
+    game->reflection_shader = LoadShader(NULL, "../assets/reflection.fs");
+    game->reflection_time_loc = GetShaderLocation(game->reflection_shader, "time");
 
     game->current_scene = SCENE_NONE;
     game->next_scene = SCENE_MENU;
@@ -288,6 +293,10 @@ void game_cleanup(Game *game) {
     if (game->water_shader.id != 0) {
         UnloadShader(game->water_shader);
         game->water_shader = (Shader){ 0 };
+    }
+    if (game->reflection_shader.id != 0) {
+        UnloadShader(game->reflection_shader);
+        game->reflection_shader = (Shader){ 0 };
     }
 
     // Clean up audio (before event bus, while GL context alive)

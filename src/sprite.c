@@ -111,3 +111,33 @@ void sprite_draw_ex(AnimatedSprite *sprite, float x, float y, float scale, Color
 
     DrawTexturePro(sprite->texture, src, dst, (Vector2){0, 0}, 0.0f, tint);
 }
+
+void sprite_draw_reflected(AnimatedSprite *sprite, float x, float y, Color tint) {
+    if (sprite->animation_count == 0) return;
+
+    SpriteAnimation *anim = &sprite->animations[sprite->current_animation];
+
+    int flat_frame;
+    if (sprite->playing) {
+        flat_frame = anim->start_frame + sprite->current_frame;
+    } else {
+        flat_frame = anim->start_frame + anim->idle_frame;
+    }
+
+    int col = flat_frame % sprite->columns;
+    int row = flat_frame / sprite->columns;
+
+    Rectangle src = {
+        (float)(col * sprite->frame_width),
+        (float)(row * sprite->frame_height),
+        (float)sprite->frame_width,
+        (float)(-sprite->frame_height)  // Negative = vertical flip
+    };
+    Rectangle dst = {
+        x, y,
+        (float)sprite->frame_width,
+        (float)sprite->frame_height
+    };
+
+    DrawTexturePro(sprite->texture, src, dst, (Vector2){0, 0}, 0.0f, tint);
+}

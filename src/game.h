@@ -93,6 +93,10 @@ typedef struct Game {
     int water_cam_offset_loc;      // uniform: camera_offset (vec2)
     int water_cam_zoom_loc;        // uniform: camera_zoom (float)
 
+    // Reflection shader
+    Shader reflection_shader;
+    int reflection_time_loc;
+
     // Scene management
     SceneID current_scene;
     SceneID next_scene;

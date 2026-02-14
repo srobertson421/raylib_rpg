@@ -41,5 +41,6 @@ void sprite_stop(AnimatedSprite *sprite);
 void sprite_update(AnimatedSprite *sprite, float dt);
 void sprite_draw(AnimatedSprite *sprite, float x, float y, Color tint);
 void sprite_draw_ex(AnimatedSprite *sprite, float x, float y, float scale, Color tint);
+void sprite_draw_reflected(AnimatedSprite *sprite, float x, float y, Color tint);
 
 #endif

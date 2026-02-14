@@ -3,7 +3,7 @@
  <editorsettings>
   <export target="assets/overworld.tsj" format="json"/>
  </editorsettings>
- <image source="../../Documents/gfx/Overworld.png" width="640" height="576"/>
+ <image source="overworld.png" width="640" height="576"/>
  <tile id="16">
   <animation>
    <frame tileid="16" duration="100"/>
