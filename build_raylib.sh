@@ -4,13 +4,26 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Auto-detect w64devkit
-W64DEV="$HOME/w64devkit/w64devkit/bin"
-if [ -d "$W64DEV" ] && ! command -v gcc &>/dev/null; then
-    export PATH="$W64DEV:$PATH"
+# Platform detection
+OS="$(uname -s)"
+case "$OS" in
+    Linux*)   PLATFORM=linux ;;
+    MINGW*|MSYS*|CYGWIN*) PLATFORM=windows ;;
+    *)
+        echo "ERROR: Unsupported platform: $OS"
+        exit 1
+        ;;
+esac
+
+# Auto-detect w64devkit on Windows
+if [ "$PLATFORM" = "windows" ]; then
+    W64DEV="$HOME/w64devkit/w64devkit/bin"
+    if [ -d "$W64DEV" ] && ! command -v gcc &>/dev/null; then
+        export PATH="$W64DEV:$PATH"
+    fi
 fi
 
-echo "=== Building raylib as static library ==="
+echo "=== Building raylib as static library ($PLATFORM) ==="
 
 cd raylib/src
 make clean
