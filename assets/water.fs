@@ -9,6 +9,7 @@ uniform float time;
 uniform vec2 camera_target;
 uniform vec2 camera_offset;
 uniform float camera_zoom;
+uniform vec2 screen_size;
 
 out vec4 finalColor;
 
@@ -16,7 +17,9 @@ void main() {
     vec4 texel = texture(texture0, fragTexCoord);
 
     // Reconstruct world position from screen-space fragment coords
-    vec2 world_pos = (gl_FragCoord.xy - camera_offset) / camera_zoom + camera_target;
+    // Note: gl_FragCoord.y is flipped (0 at bottom in OpenGL, but raylib uses 0 at top)
+    vec2 screen_pos = vec2(gl_FragCoord.x, screen_size.y - gl_FragCoord.y);
+    vec2 world_pos = (screen_pos - camera_offset) / camera_zoom + camera_target;
 
     // Brightness wave: two overlapping sin waves for organic feel
     float wave1 = sin(world_pos.x * 0.08 + world_pos.y * 0.04 + time * 1.2) * 0.5 + 0.5;

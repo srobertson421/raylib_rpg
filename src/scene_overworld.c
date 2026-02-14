@@ -206,10 +206,12 @@ static void overworld_draw(Game *game) {
                 bool shader_active = false;
                 if (layer->shader_name[0] && strcmp(layer->shader_name, "water") == 0) {
                     float t = (float)GetTime();
+                    float screen_size[2] = { (float)GetScreenWidth(), (float)GetScreenHeight() };
                     SetShaderValue(game->water_shader, game->water_time_loc, &t, SHADER_UNIFORM_FLOAT);
                     SetShaderValue(game->water_shader, game->water_cam_target_loc, &game->camera.target, SHADER_UNIFORM_VEC2);
                     SetShaderValue(game->water_shader, game->water_cam_offset_loc, &game->camera.offset, SHADER_UNIFORM_VEC2);
                     SetShaderValue(game->water_shader, game->water_cam_zoom_loc, &game->camera.zoom, SHADER_UNIFORM_FLOAT);
+                    SetShaderValue(game->water_shader, game->water_screen_size_loc, screen_size, SHADER_UNIFORM_VEC2);
                     BeginShaderMode(game->water_shader);
                     shader_active = true;
                 }
