@@ -86,12 +86,25 @@ typedef struct Game {
     int light_radius_loc;             // cached uniform: light_radius (float, screen pixels)
     int screen_size_loc;              // cached uniform: screen_size (vec2)
 
+    // Cloud shadows (in daynight shader)
+    float cloud_offset_x;              // Animated offset X (world units)
+    float cloud_offset_y;              // Animated offset Y (world units)
+    float cloud_speed_x;               // Drift speed X (randomized)
+    float cloud_speed_y;               // Drift speed Y (randomized)
+    int cloud_intensity_loc;           // uniform location
+    int cloud_offset_loc;              // uniform location
+    int cloud_scale_loc;               // uniform location
+    int daynight_cam_target_loc;       // uniform location
+    int daynight_cam_offset_loc;       // uniform location
+    int daynight_cam_zoom_loc;         // uniform location
+
     // Per-layer shaders
     Shader water_shader;
     int water_time_loc;            // uniform: time (float, seconds)
     int water_cam_target_loc;      // uniform: camera_target (vec2)
     int water_cam_offset_loc;      // uniform: camera_offset (vec2)
     int water_cam_zoom_loc;        // uniform: camera_zoom (float)
+    int water_screen_size_loc;     // uniform: screen_size (vec2)
 
     // Reflection shader
     Shader reflection_shader;

@@ -5,7 +5,9 @@
 #include "audio.h"
 #include "settings.h"
 #include "ui.h"
+#include <math.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 
 static const char *RENDER_LAYER_NAMES[RENDER_LAYER_COUNT] = {
@@ -154,6 +156,20 @@ void game_init(Game *game) {
     game->daynight_active = false;
     game->torch_active = false;
 
+    // Cloud shadow uniforms
+    game->cloud_intensity_loc = GetShaderLocation(game->daynight_shader, "cloud_intensity");
+    game->cloud_offset_loc = GetShaderLocation(game->daynight_shader, "cloud_offset");
+    game->cloud_scale_loc = GetShaderLocation(game->daynight_shader, "cloud_scale");
+    game->daynight_cam_target_loc = GetShaderLocation(game->daynight_shader, "camera_target");
+    game->daynight_cam_offset_loc = GetShaderLocation(game->daynight_shader, "camera_offset");
+    game->daynight_cam_zoom_loc = GetShaderLocation(game->daynight_shader, "camera_zoom");
+
+    // Initialize cloud animation with random speed
+    game->cloud_offset_x = 0.0f;
+    game->cloud_offset_y = 0.0f;
+    game->cloud_speed_x = 15.0f + (float)(rand() % 10);   // 15-25 world units/sec
+    game->cloud_speed_y = 2.0f + (float)(rand() % 5);     // 2-7 world units/sec
+
     // Water shader
     if (game->water_shader.id != 0) UnloadShader(game->water_shader);
     game->water_shader = LoadShader(NULL, "../assets/water.fs");
@@ -161,6 +177,7 @@ void game_init(Game *game) {
     game->water_cam_target_loc = GetShaderLocation(game->water_shader, "camera_target");
     game->water_cam_offset_loc = GetShaderLocation(game->water_shader, "camera_offset");
     game->water_cam_zoom_loc = GetShaderLocation(game->water_shader, "camera_zoom");
+    game->water_screen_size_loc = GetShaderLocation(game->water_shader, "screen_size");
 
     // Reflection shader
     if (game->reflection_shader.id != 0) UnloadShader(game->reflection_shader);
@@ -180,6 +197,10 @@ void game_update(Game *game) {
     // Advance day/night clock (always ticks, even during overlay)
     game->time_of_day += game->time_speed * GetFrameTime() / 60.0f;
     if (game->time_of_day >= 24.0f) game->time_of_day -= 24.0f;
+
+    // Animate cloud offset
+    game->cloud_offset_x += game->cloud_speed_x * GetFrameTime();
+    game->cloud_offset_y += game->cloud_speed_y * GetFrameTime();
 
     // F5: toggle torch light (debug)
     if (IsKeyPressed(KEY_F5)) {
@@ -239,6 +260,25 @@ void game_draw(Game *game) {
         SetShaderValue(game->daynight_shader, game->light_pos_loc, &player_screen, SHADER_UNIFORM_VEC2);
         SetShaderValue(game->daynight_shader, game->light_radius_loc, &light_radius, SHADER_UNIFORM_FLOAT);
         SetShaderValue(game->daynight_shader, game->screen_size_loc, screen_size, SHADER_UNIFORM_VEC2);
+
+        // Cloud shadow uniforms
+        // Intensity based on time of day: strongest at noon, zero at night/dawn/dusk
+        float hour = game->time_of_day;
+        float cloud_intensity = 0.0f;
+        if (hour >= 8.0f && hour <= 18.0f) {
+            // Daytime: ramp up from 8am, peak at noon, ramp down to 6pm
+            float day_progress = (hour - 8.0f) / 10.0f;  // 0-1 over day
+            cloud_intensity = sinf(day_progress * 3.14159f);  // Sine curve peaks at 0.5 (noon)
+            cloud_intensity *= 0.8f;  // Max 80% intensity
+        }
+        float cloud_offset[2] = { game->cloud_offset_x, game->cloud_offset_y };
+        float cloud_scale = 0.005f;  // Smaller = bigger clouds
+        SetShaderValue(game->daynight_shader, game->cloud_intensity_loc, &cloud_intensity, SHADER_UNIFORM_FLOAT);
+        SetShaderValue(game->daynight_shader, game->cloud_offset_loc, cloud_offset, SHADER_UNIFORM_VEC2);
+        SetShaderValue(game->daynight_shader, game->cloud_scale_loc, &cloud_scale, SHADER_UNIFORM_FLOAT);
+        SetShaderValue(game->daynight_shader, game->daynight_cam_target_loc, &game->camera.target, SHADER_UNIFORM_VEC2);
+        SetShaderValue(game->daynight_shader, game->daynight_cam_offset_loc, &game->camera.offset, SHADER_UNIFORM_VEC2);
+        SetShaderValue(game->daynight_shader, game->daynight_cam_zoom_loc, &game->camera.zoom, SHADER_UNIFORM_FLOAT);
 
         BeginShaderMode(game->daynight_shader);
             float w = (float)game->render_target.texture.width;
