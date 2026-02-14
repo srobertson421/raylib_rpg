@@ -49,8 +49,8 @@ float cloud_noise(vec2 p) {
     float amplitude = 0.5;
     float frequency = 1.0;
 
-    // 4 octaves for cloud detail
-    for (int i = 0; i < 4; i++) {
+    // 3 octaves for smooth cloud shapes
+    for (int i = 0; i < 3; i++) {
         value += amplitude * noise(p * frequency);
         amplitude *= 0.5;
         frequency *= 2.0;
@@ -106,11 +106,11 @@ void main() {
         float cloud_value = cloud_noise(cloud_pos);
 
         // Remap noise to shadow (higher threshold = fewer, more distinct clouds)
-        float shadow = smoothstep(0.35, 0.55, cloud_value);  // Creates 2-10 large clouds
+        float shadow = smoothstep(0.15, 0.45, cloud_value);  // Broad coverage, soft edges
         shadow *= cloud_intensity;
 
-        // Apply shadow darkening (max 40% darkening)
-        result *= (1.0 - shadow * 0.4);
+        // Apply shadow darkening (max 65% darkening)
+        result *= (1.0 - shadow * 0.65);
     }
 
     finalColor = vec4(result, texel.a) * colDiffuse * fragColor;

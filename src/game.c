@@ -272,7 +272,7 @@ void game_draw(Game *game) {
             cloud_intensity *= 0.8f;  // Max 80% intensity
         }
         float cloud_offset[2] = { game->cloud_offset_x, game->cloud_offset_y };
-        float cloud_scale = 0.005f;  // Smaller = bigger clouds
+        float cloud_scale = 0.002f;  // Smaller = bigger clouds
         SetShaderValue(game->daynight_shader, game->cloud_intensity_loc, &cloud_intensity, SHADER_UNIFORM_FLOAT);
         SetShaderValue(game->daynight_shader, game->cloud_offset_loc, cloud_offset, SHADER_UNIFORM_VEC2);
         SetShaderValue(game->daynight_shader, game->cloud_scale_loc, &cloud_scale, SHADER_UNIFORM_FLOAT);
